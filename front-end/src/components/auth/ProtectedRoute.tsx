@@ -1,0 +1,76 @@
+// import React from 'react';
+// import { Navigate } from 'react-router-dom';
+// import { useAuth } from '../../context/AuthContext';
+
+// interface ProtectedRouteProps {
+//   children: React.ReactNode;
+//   requiredRole?: 'citizen' | 'collector' | 'authority' | 'admin';
+// }
+
+// const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
+//   const { isAuthenticated, isLoading, user } = useAuth();
+
+//   if (isLoading) {
+//     return (
+//       <div className="flex justify-center items-center min-h-screen">
+//         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-700"></div>
+//       </div>
+//     );
+//   }
+
+//   // 🔥 Si l'utilisateur n'est pas connecté, on le redirige vers /login
+//   if (!isAuthenticated) {
+//     return <Navigate to="/login" replace />;
+//   }
+
+//   // 🔥 Vérification du rôle : l'admin doit aller sur /admin-dashboard
+//   if (user?.role === 'admin' && requiredRole !== 'admin') {
+//     return <Navigate to="/admin" replace />;
+//   }
+
+//   // 🔥 Vérification des accès pour les autres rôles
+//   if (requiredRole && user?.role !== requiredRole) {
+//     return <Navigate to="/report" replace />;
+//   }
+
+//   return <>{children}</>;
+// };
+
+// export default ProtectedRoute;
+
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { User } from '../../types';
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  requiredRole?: 'citizen' | 'collector' | 'authority' | 'admin';
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  requiredRole 
+}) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-700"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+export default ProtectedRoute;

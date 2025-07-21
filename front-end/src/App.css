@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary-color: #2E7D32;
+  --primary-light: #60ad5e;
+  --primary-dark: #005005;
+  --secondary-color: #1565C0;
+  --secondary-light: #5e92f3;
+  --secondary-dark: #003c8f;
+  --success-color: #4CAF50;
+  --warning-color: #FFC107;
+  --error-color: #F44336;
+  --background-color: #F5F7FA;
+  --text-primary: #212121;
+  --text-secondary: #757575;
+  --text-light: #FFFFFF;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.app-title {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.btn-primary {
+  @apply bg-green-700 hover:bg-green-800 text-white font-medium py-2 px-4 rounded-md transition duration-300;
+}
+
+.btn-secondary {
+  @apply bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-md transition duration-300;
+}
+
+.btn-ghost {
+  @apply bg-transparent hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-md transition duration-300;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow-md p-6;
+}
+
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500;
+}
+
+.alert-success {
+  @apply bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4;
+}
+
+.alert-error {
+  @apply bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4;
+}
+
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-reported {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-inProgress {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.badge-completed {
+  @apply bg-green-100 text-green-800;
+}
+
+.waste-marker {
+  @apply absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300;
+  z-index: 10;
+}
+
+.waste-marker:hover {
+  z-index: 20;
+  transform: scale(1.1) translate(-45%, -45%);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.map-container {
+  width: 100%;
+  height: 500px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+@media screen and (max-width: 640px) {
+  .map-container {
+    height: 300px;
+  }
+}
