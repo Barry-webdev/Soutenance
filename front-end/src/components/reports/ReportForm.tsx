@@ -34,7 +34,7 @@ const ReportForm: React.FC = () => {
   const getCurrentLocation = () => {
     setLocationLoading(true);
     setError(null);
-    
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocation({
@@ -68,18 +68,17 @@ const ReportForm: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:4000/waste_reports', {
+      const response = await fetch('http://localhost:4000/api/waste_reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
           description,
           wasteType,
-          location,
           imageUrl: photo,
-          address: location?.address || '',
-          latitude: location?.latitude || null,
-          longitude: location?.longitude || null,
+          address: location.address,
+          latitude: location.latitude,
+          longitude: location.longitude,
           status: 'en_attente'
         })
       });
