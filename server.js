@@ -244,6 +244,23 @@ app.get('/api/statistics', async (req, res) => {
   }
 });
 
+// const notificationRoutes = require('./routes/notifications.routes.js');
+// app.use('/api', notificationRoutes);
+
+// router.post('/notifications', async (req, res) => {
+//   try {
+//     const { userId, title, message } = req.body;
+//     await dbPool.query(`
+//       INSERT INTO notifications (userId, title, message, read, createdAt)
+//       VALUES (?, ?, ?, false, NOW())
+//     `, [userId, title, message]);
+//     res.status(201).json({ message: 'Notification enregistrée' });
+//   } catch (error) {
+//     console.error('❌ Erreur notification :', error);
+//     res.status(500).json({ error: 'Erreur serveur' });
+//   }
+// });
+
 // ==============================
 // 🗑️ Signalements de déchets
 // ==============================
