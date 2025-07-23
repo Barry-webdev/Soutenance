@@ -14,7 +14,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await fetch(`http://localhost:7000/notifications/${userId}`);
+        const response = await fetch(`http://localhost:4000/notifications/${userId}`);
         const data = await response.json();
         setNotifications(data);
         setLoading(false);
@@ -30,7 +30,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
   // 🔥 Marquer une notification comme lue
   const handleNotificationClick = async (id: string) => {
     try {
-      await fetch(`http://localhost:7000/notifications/${id}/read`, { method: 'PUT' });
+      await fetch(`http://localhost:4000/notifications/${id}/read`, { method: 'PUT' });
       setNotifications(prev => prev.map(notif => notif.id === id ? { ...notif, read: true } : notif));
     } catch (error) {
       console.error("❌ Erreur lors du marquage de la notification", error);
@@ -40,7 +40,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
   // 🔥 Marquer toutes les notifications comme lues
   const markAllAsRead = async () => {
     try {
-      await fetch(`http://localhost:7000/notifications/${userId}/read-all`, { method: 'PUT' });
+      await fetch(`http://localhost:4000/notifications/${userId}/read-all`, { method: 'PUT' });
       setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
     } catch (error) {
       console.error("❌ Erreur lors du marquage de toutes les notifications", error);
