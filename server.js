@@ -244,22 +244,26 @@ app.get('/api/statistics', async (req, res) => {
   }
 });
 
-// const notificationRoutes = require('./routes/notifications.routes.js');
-// app.use('/api', notificationRoutes);
+app.get('/api/dashboard-stats', async (req, res) => {
+  try {
+    const [[signalements]] = await db.query('SELECT COUNT(*) AS count FROM waste_reports');
+    const [[resolus]] = await db.query("SELECT COUNT(*) AS count FROM waste_reports WHERE status = 'completed'");
+    const [[utilisateurs]] = await db.query('SELECT COUNT(*) AS count FROM utilisateur');
+    const [[quartiers]] = await db.query('SELECT COUNT(DISTINCT address) AS count FROM waste_reports');
 
-// router.post('/notifications', async (req, res) => {
-//   try {
-//     const { userId, title, message } = req.body;
-//     await dbPool.query(`
-//       INSERT INTO notifications (userId, title, message, read, createdAt)
-//       VALUES (?, ?, ?, false, NOW())
-//     `, [userId, title, message]);
-//     res.status(201).json({ message: 'Notification enregistrée' });
-//   } catch (error) {
-//     console.error('❌ Erreur notification :', error);
-//     res.status(500).json({ error: 'Erreur serveur' });
-//   }
-// });
+    res.json({
+      signalements: signalements.count,
+      resolus: resolus.count,
+      utilisateurs: utilisateurs.count,
+      quartiers: quartiers.count
+    });
+  } catch (error) {
+    console.error('❌ Erreur stats accueil :', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+
 
 // ==============================
 // 🗑️ Signalements de déchets
