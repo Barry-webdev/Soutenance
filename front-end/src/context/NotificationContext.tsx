@@ -5,6 +5,8 @@ import { formatDistanceToNow } from '../utils/dateUtils';
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
+  setUnreadCount: React.Dispatch<React.SetStateAction<number>>; // ✅ Ajouté
+  setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>; // ✅ Ajouté pour éviter le soulignement
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
 }
 
@@ -12,6 +14,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0); // ✅ Ajouté
 
   const userId = localStorage.getItem('user')
     ? JSON.parse(localStorage.getItem('user')!).id
@@ -31,6 +34,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }));
 
         setNotifications(formattedNotifications);
+
+        const nonLues = data.filter((n: Notification) => !n.read).length;
+        setUnreadCount(nonLues);
       } catch (error) {
         console.error('❌ Erreur de récupération des notifications', error);
       }
@@ -39,7 +45,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     fetchNotifications();
   }, [userId]);
 
-  // 💬 Fonction pour ajouter une notification (localement + éventuellement côté backend)
   const addNotification = async (notification: Omit<Notification, 'id' | 'createdAt'>) => {
     try {
       const response = await fetch(`http://localhost:4000/notifications`, {
@@ -57,15 +62,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         },
         ...prev,
       ]);
+
+      setUnreadCount((prev) => prev + 1);
     } catch (error) {
       console.error('❌ Erreur lors de l\'ajout de la notification', error);
     }
   };
 
-  const unreadCount = notifications.filter((notification) => !notification.read).length;
-
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, addNotification }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, setUnreadCount, setNotifications, addNotification }}>
       {children}
     </NotificationContext.Provider>
   );

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { formatDistanceToNow } from '../../utils/dateUtils';
+import { useNotifications } from '../../context/NotificationContext'; // 👈 Ajouté
 
 interface NotificationDropdownProps {
   userId: string;
@@ -7,7 +8,7 @@ interface NotificationDropdownProps {
 }
 
 const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onClose }) => {
-  const [notifications, setNotifications] = useState([]);
+  const { notifications, setNotifications, setUnreadCount } = useNotifications(); // ✅ Récupère depuis le contexte
   const [loading, setLoading] = useState(true);
 
   // 🔥 Récupération des notifications depuis MySQL
@@ -16,7 +17,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
       try {
         const response = await fetch(`http://localhost:4000/notifications/${userId}`);
         const data = await response.json();
-        setNotifications(data);
+        setNotifications(data); // ✅ stocke dans le contexte
         setLoading(false);
       } catch (error) {
         console.error("❌ Erreur de récupération des notifications", error);
@@ -25,13 +26,16 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
     };
 
     fetchNotifications();
-  }, [userId]);
+  }, [userId, setNotifications]);
 
   // 🔥 Marquer une notification comme lue
   const handleNotificationClick = async (id: string) => {
     try {
       await fetch(`http://localhost:4000/notifications/${id}/read`, { method: 'PUT' });
-      setNotifications(prev => prev.map(notif => notif.id === id ? { ...notif, read: true } : notif));
+      setNotifications(prev =>
+        prev.map(notif => notif.id === id ? { ...notif, read: true } : notif)
+      );
+      setUnreadCount(prev => (prev > 0 ? prev - 1 : 0));
     } catch (error) {
       console.error("❌ Erreur lors du marquage de la notification", error);
     }
@@ -39,9 +43,13 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
 
   // 🔥 Marquer toutes les notifications comme lues
   const markAllAsRead = async () => {
+    if (!userId) return;
     try {
       await fetch(`http://localhost:4000/notifications/${userId}/read-all`, { method: 'PUT' });
-      setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+      setNotifications(prev =>
+        prev.map(notif => ({ ...notif, read: true }))
+      );
+      setUnreadCount(0);
     } catch (error) {
       console.error("❌ Erreur lors du marquage de toutes les notifications", error);
     }
