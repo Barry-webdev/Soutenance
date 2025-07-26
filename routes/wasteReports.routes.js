@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 
 // ✅ Connexions
-const db = require('../config/db');
 const { dbPool } = require('../config/db');
 
 // ==============================
@@ -85,9 +84,22 @@ router.post('/waste_report', async (req, res) => {
   }
 });
 
-// ==============================
+// ✅ PATCH : mise à jour du statut
+router.patch("/waste_reports/:id/status", async (req, res) => {
+  const { status } = req.body;
+  const { id } = req.params;
+
+  try {
+    await dbPool.query("UPDATE waste_reports SET status = ? WHERE id = ?", [status, id]);
+    const [rows] = await dbPool.query("SELECT * FROM waste_reports WHERE id = ?", [id]);
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error("❌ Erreur serveur :", error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
 // 🔍 Récupération des signalements
-// ==============================
 router.get('/waste_reports', async (req, res) => {
   try {
     const query = `
