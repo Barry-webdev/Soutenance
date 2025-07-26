@@ -6,16 +6,25 @@ import {
 import { Trash2, CheckCircle, Clock, AlertCircle, Percent, FileText } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 
+interface StatsData {
+  totalReports: number;
+  completed: number;
+  pending: number;
+  criticalAreas: number;
+  wasteTypeData: { name: string; count: number }[];
+  reportsByNeighborhood: { name: string; reports: number }[];
+}
+
 const StatsOverview: React.FC = () => {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const pdfRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await fetch('http://localhost:4000/api/statistics');
-        const data = await response.json();
+        const data: StatsData = await response.json();
         setStats(data);
         setLoading(false);
       } catch (error) {
@@ -28,7 +37,7 @@ const StatsOverview: React.FC = () => {
   }, []);
 
   const resolutionRate = stats?.totalReports
-    ? Math.round((stats.completed / stats.totalReports) * 100)
+    ? Math.round(((stats.completed ?? 0) / stats.totalReports) * 100)
     : 0;
 
   const handleExportPDF = () => {
@@ -66,7 +75,7 @@ const StatsOverview: React.FC = () => {
                 <Trash2 className="text-green-700" size={20} />
                 <div className="ml-3">
                   <p className="text-sm text-gray-600">Total des signalements</p>
-                  <p className="text-xl font-semibold">{stats?.totalReports}</p>
+                  <p className="text-xl font-semibold">{stats?.totalReports ?? 0}</p>
                 </div>
               </div>
             </div>
@@ -76,7 +85,7 @@ const StatsOverview: React.FC = () => {
                 <CheckCircle className="text-blue-700" size={20} />
                 <div className="ml-3">
                   <p className="text-sm text-gray-600">Signalements résolus</p>
-                  <p className="text-xl font-semibold">{stats?.completed}</p>
+                  <p className="text-xl font-semibold">{stats?.completed ?? 0}</p>
                 </div>
               </div>
             </div>
@@ -86,7 +95,7 @@ const StatsOverview: React.FC = () => {
                 <Clock className="text-yellow-700" size={20} />
                 <div className="ml-3">
                   <p className="text-sm text-gray-600">En attente</p>
-                  <p className="text-xl font-semibold">{stats?.pending}</p>
+                  <p className="text-xl font-semibold">{stats?.pending ?? 0}</p>
                 </div>
               </div>
             </div>
@@ -141,8 +150,11 @@ const StatsOverview: React.FC = () => {
                 outerRadius={100}
                 label
               >
-                {stats?.wasteTypeData?.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={['#2E7D32', '#FF9800', '#2196F3', '#E53935'][index % 4]} />
+                {(stats?.wasteTypeData ?? []).map((entry: { name: string; count: number }, index: number) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={['#2E7D32', '#FF9800', '#2196F3', '#E53935'][index % 4]}
+                  />
                 ))}
               </Pie>
               <Legend />
