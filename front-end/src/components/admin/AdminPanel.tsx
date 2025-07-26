@@ -325,8 +325,8 @@ const AdminPanel: React.FC = () => {
 
                 <div className="mt-4">
                   <button onClick={() => updateReportStatus(selectedReport.id, 'reported')} className="mr-2">Signalé</button>
-                  <button onClick={() => updateReportStatus(selectedReport.id, 'inProgress')} className="mr-2">En cours</button>
-                  <button onClick={() => updateReportStatus(selectedReport.id, 'completed')}>Résolu</button>
+                  <button onClick={() => updateReportStatus(selectedReport.id, 'inProgress')} className="text-orange-500 mr-2">En cours</button>
+                  <button onClick={() => updateReportStatus(selectedReport.id, 'completed')} className="text-green-600 hover:underline">Résolu</button>
                 </div>
 
                 <div className="mt-4">
