@@ -17,8 +17,18 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
       try {
         const response = await fetch(`http://localhost:4000/notifications/${userId}`);
         const data = await response.json();
-        setNotifications(data); // ✅ stocke dans le contexte
+
+        // ✅ Ajout d'un formatage sûr de la date
+        const formattedNotifications = data.map((notif: any) => ({
+          ...notif,
+          createdAt: formatDistanceToNow(notif.createdAt),
+        }));
+
+        setNotifications(formattedNotifications);
         setLoading(false);
+
+        const nonLues = data.filter((n: any) => !n.read).length;
+        setUnreadCount(nonLues);
       } catch (error) {
         console.error("❌ Erreur de récupération des notifications", error);
         setLoading(false);
@@ -26,15 +36,17 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
     };
 
     fetchNotifications();
-  }, [userId, setNotifications]);
+  }, [userId, setNotifications, setUnreadCount]);
 
   // 🔥 Marquer une notification comme lue
   const handleNotificationClick = async (id: string) => {
     try {
       await fetch(`http://localhost:4000/notifications/${id}/read`, { method: 'PUT' });
+
       setNotifications(prev =>
         prev.map(notif => notif.id === id ? { ...notif, read: true } : notif)
       );
+
       setUnreadCount(prev => (prev > 0 ? prev - 1 : 0));
     } catch (error) {
       console.error("❌ Erreur lors du marquage de la notification", error);
@@ -46,9 +58,12 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
     if (!userId) return;
     try {
       await fetch(`http://localhost:4000/notifications/${userId}/read-all`, { method: 'PUT' });
+
       setNotifications(prev =>
         prev.map(notif => ({ ...notif, read: true }))
       );
+
+      // ✅ Le badge disparaît immédiatement
       setUnreadCount(0);
     } catch (error) {
       console.error("❌ Erreur lors du marquage de toutes les notifications", error);
@@ -88,7 +103,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
           </div>
         ) : notifications.length > 0 ? (
           notifications.map(notification => (
-            <div 
+            <div
               key={notification.id}
               onClick={() => handleNotificationClick(notification.id)}
               className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-green-50' : ''}`}
@@ -99,7 +114,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
                   <p className="text-xs text-gray-600">{notification.message}</p>
                 </div>
                 <span className="text-xs text-gray-500">
-                  {formatDistanceToNow(notification.createdAt)}
+                  {notification.createdAt}
                 </span>
               </div>
             </div>

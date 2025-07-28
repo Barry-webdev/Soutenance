@@ -5,8 +5,8 @@ import { formatDistanceToNow } from '../utils/dateUtils';
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  setUnreadCount: React.Dispatch<React.SetStateAction<number>>; // ✅ Ajouté
-  setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>; // ✅ Ajouté pour éviter le soulignement
+  setUnreadCount: React.Dispatch<React.SetStateAction<number>>;
+  setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
 }
 
@@ -14,11 +14,10 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState<number>(0); // ✅ Ajouté
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
-  const userId = localStorage.getItem('user')
-    ? JSON.parse(localStorage.getItem('user')!).id
-    : null;
+  const userData = localStorage.getItem('user');
+  const userId = userData ? (JSON.parse(userData)?.id ?? null) : null;
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -26,16 +25,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       try {
         const response = await fetch(`http://localhost:4000/notifications/${userId}`);
-        const data = await response.json();
+        if (!response.ok) throw new Error('Erreur réseau');
 
-        const formattedNotifications = data.map((notif: Notification) => ({
+        const data: Notification[] = await response.json();
+
+        // ✅ Formatage de la date
+        const formattedNotifications = data.map((notif) => ({
           ...notif,
           createdAt: formatDistanceToNow(notif.createdAt),
         }));
 
         setNotifications(formattedNotifications);
 
-        const nonLues = data.filter((n: Notification) => !n.read).length;
+        // ✅ Mise à jour automatique du compteur
+        const nonLues = data.filter((n) => !n.read).length;
         setUnreadCount(nonLues);
       } catch (error) {
         console.error('❌ Erreur de récupération des notifications', error);
@@ -43,6 +46,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     fetchNotifications();
+
+    // ✅ Optionnel : actualiser régulièrement (polling)
+    const interval = setInterval(fetchNotifications, 5000); // toutes les 5 sec
+    return () => clearInterval(interval);
   }, [userId]);
 
   const addNotification = async (notification: Omit<Notification, 'id' | 'createdAt'>) => {
@@ -53,7 +60,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         body: JSON.stringify(notification),
       });
 
-      const savedNotification = await response.json();
+      if (!response.ok) throw new Error("Erreur lors de l'ajout");
+
+      const savedNotification: Notification = await response.json();
 
       setNotifications((prev) => [
         {
@@ -63,14 +72,23 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         ...prev,
       ]);
 
+      // ✅ Mise à jour immédiate du badge
       setUnreadCount((prev) => prev + 1);
     } catch (error) {
-      console.error('❌ Erreur lors de l\'ajout de la notification', error);
+      console.error("❌ Erreur lors de l'ajout de la notification", error);
     }
   };
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, setUnreadCount, setNotifications, addNotification }}>
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        unreadCount,
+        setUnreadCount,
+        setNotifications,
+        addNotification,
+      }}
+    >
       {children}
     </NotificationContext.Provider>
   );

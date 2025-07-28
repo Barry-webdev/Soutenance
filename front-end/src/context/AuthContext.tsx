@@ -23,16 +23,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
-    isLoading: true,
+    isLoading: true, // ✅ cohérent avec Navbar
     error: null,
   });
 
-  // Check for saved auth on app load
+  // 🔁 Re-sync user when localStorage changes (useful when login from another tab)
+  useEffect(() => {
+    const handleStorage = () => {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const user = JSON.parse(savedUser) as User;
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+      } else {
+        setAuthState(prev => ({ ...prev, user: null, isAuthenticated: false }));
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  // ✅ Check for saved auth on app load
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const savedUser = localStorage.getItem('user');
-        
         if (savedUser) {
           const user = JSON.parse(savedUser) as User;
           setAuthState({
@@ -59,22 +79,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     setAuthState(prevState => ({ ...prevState, isLoading: true, error: null }));
-    
+
     try {
-      // Mock authentication - would be replaced with actual API calls
+      let user: User;
+
       if (email === 'babdoulrazzai@gmail.com' && password === 'kathioure') {
-        // Admin login
-        localStorage.setItem('user', JSON.stringify(MOCK_ADMIN_USER));
-        
-        setAuthState({
-          user: MOCK_ADMIN_USER,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
+        user = MOCK_ADMIN_USER;
       } else {
-        // Mock regular user login (in a real app, this would be replaced with API call)
-        const mockUser: User = {
+        user = {
           id: `user-${Date.now()}`,
           email,
           name: email.split('@')[0],
@@ -82,16 +94,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           points: 0,
           createdAt: new Date().toISOString(),
         };
-        
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        
-        setAuthState({
-          user: mockUser,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
       }
+
+      localStorage.setItem('user', JSON.stringify(user));
+
+      setAuthState({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
     } catch (error) {
       setAuthState(prevState => ({
         ...prevState,
@@ -103,9 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (email: string, password: string, name: string) => {
     setAuthState(prevState => ({ ...prevState, isLoading: true, error: null }));
-    
+
     try {
-      // Mock registration - would be replaced with actual API calls
       const newUser: User = {
         id: `user-${Date.now()}`,
         email,
@@ -114,9 +125,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         points: 0,
         createdAt: new Date().toISOString(),
       };
-      
+
       localStorage.setItem('user', JSON.stringify(newUser));
-      
+
       setAuthState({
         user: newUser,
         isAuthenticated: true,
@@ -152,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+// ✅ Ne pas créer de states ici : ils doivent être dans AuthProvider
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
