@@ -59,7 +59,7 @@ router.put('/notifications/:id/read', async (req, res) => {
   }
 });
 
-// ✅ Marquer toutes les notifications comme lues
+// ✅ Marquer toutes les notifications comme lues pour un utilisateur
 router.put('/notifications/:userId/read-all', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -79,7 +79,11 @@ router.get('/notifications/:userId/unread-count', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const sql = `SELECT COUNT(*) AS total FROM notifications WHERE userId = ? AND read = false`;
+    const sql = `
+      SELECT COUNT(*) AS total
+      FROM notifications
+      WHERE userId = ? AND read = false
+    `;
     const [rows] = await dbPool.query(sql, [userId]);
 
     res.status(200).json({ count: rows[0].total });

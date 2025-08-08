@@ -8,7 +8,7 @@ interface NotificationDropdownProps {
 }
 
 const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onClose }) => {
-  const { notifications, setNotifications, setUnreadCount } = useNotifications(); // ✅ Récupère depuis le contexte
+  const { notifications, setNotifications, setUnreadCount, markAllAsRead } = useNotifications(); // ✅ Ajout de markAllAsRead
   const [loading, setLoading] = useState(true);
 
   // 🔥 Récupération des notifications depuis MySQL
@@ -54,17 +54,9 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
   };
 
   // 🔥 Marquer toutes les notifications comme lues
-  const markAllAsRead = async () => {
-    if (!userId) return;
+  const handleMarkAllAsRead = async () => {
     try {
-      await fetch(`http://localhost:4000/notifications/${userId}/read-all`, { method: 'PUT' });
-
-      setNotifications(prev =>
-        prev.map(notif => ({ ...notif, read: true }))
-      );
-
-      // ✅ Le badge disparaît immédiatement
-      setUnreadCount(0);
+      await markAllAsRead();
     } catch (error) {
       console.error("❌ Erreur lors du marquage de toutes les notifications", error);
     }
@@ -90,7 +82,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
       <div className="border-b border-gray-200">
         <div className="flex justify-between items-center px-4 py-2">
           <h3 className="text-sm font-medium text-gray-700">Notifications</h3>
-          <button onClick={markAllAsRead} className="text-xs text-green-700 hover:text-green-800">
+          <button onClick={handleMarkAllAsRead} className="text-xs text-green-700 hover:text-green-800">
             Tout marquer comme lu
           </button>
         </div>

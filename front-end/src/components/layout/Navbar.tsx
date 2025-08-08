@@ -5,19 +5,17 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import NotificationDropdown from './NotificationDropdown';
 import EcoPulseLogo from '../../assets/images/EcoPulse.logo.png'; // ✅ logo ajouté
+import { Brain } from 'lucide-react';
 
 const Navbar: React.FC = () => {
-  // ✅ States locaux
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // ✅ Contexts (remplacé loading → isLoading)
   const { isAuthenticated, user, logout, isLoading } = useAuth();
-  const { unreadCount, setUnreadCount } = useNotifications();
+  const { unreadCount, setUnreadCount } = useNotifications(); // ✅ Utilisation du contexte
 
   const navigate = useNavigate();
 
-  // ✅ Fonctions de gestion
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleNotifications = () => setShowNotifications(!showNotifications);
 
@@ -27,14 +25,14 @@ const Navbar: React.FC = () => {
     setIsMenuOpen(false);
   };
 
-  // ✅ Fetch des notifications non lues avec mise à jour automatique
+  // ✅ Rafraîchissement automatique du nombre de notifications non lues
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
         if (user?.id) {
           const res = await fetch(`/api/notifications/${user.id}/unread-count`);
           const data = await res.json();
-          setUnreadCount(data.count);
+          setUnreadCount(data.count); // Mise à jour du compteur
         }
       } catch (error) {
         console.error('❌ Erreur lors du chargement des notifications non lues', error);
@@ -43,13 +41,10 @@ const Navbar: React.FC = () => {
 
     fetchUnreadCount(); // Appel initial
 
-    // 🔥 Rafraîchissement toutes les 5 secondes
-    const interval = setInterval(fetchUnreadCount, 5000);
-
+    const interval = setInterval(fetchUnreadCount, 5000); // Mise à jour toutes les 5 secondes
     return () => clearInterval(interval);
   }, [user, setUnreadCount]);
 
-  // ✅ Si l'app est en cours de chargement
   if (isLoading) return null;
 
   return (
@@ -77,6 +72,13 @@ const Navbar: React.FC = () => {
             <Link to="/statistics" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
               Statistiques
             </Link>
+            <Link
+                  to="/sensibilisation"
+                  className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  🧠 Sensibilisation
+            </Link>
+
 
             {isAuthenticated ? (
               <>
@@ -189,6 +191,15 @@ const Navbar: React.FC = () => {
                 <BarChart2 size={18} className="mr-2" />Statistiques
               </div>
             </Link>
+           <Link
+  to="/sensibilisation"
+  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+  onClick={toggleMenu}
+>
+  <div className="flex items-center">
+    <Brain size={18} className="mr-2" />Sensibilisation
+  </div>
+</Link>
 
             {isAuthenticated ? (
               <>

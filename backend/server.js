@@ -142,6 +142,8 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+
+
 // ✅ Déconnexion
 app.post('/logout', (req, res) => {
   res.clearCookie('userId');
@@ -182,6 +184,10 @@ app.get('/api/notifications/:id', async (req, res) => {
     res.status(500).json({ message: 'Erreur serveur.' });
   }
 });
+
+//Notifs
+const notificationsRoutes = require('./routes/notifications.routes');
+app.use('/notifications', notificationsRoutes);
 
 // ==============================
 // 👤 Liste des utilisateurs
@@ -262,6 +268,8 @@ app.get('/api/dashboard-stats', async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
+
 
 
 

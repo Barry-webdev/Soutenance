@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
 import StatisticsPage from './pages/StatisticsPage';
 import NotFoundPage from './pages/NotFundPage';
+import Sensibilisation from './pages/Sensibilisation';
 import './App.css';
 import {QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
@@ -54,6 +55,7 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/statistics" element={<StatisticsPage />} />
+                <Route path="/sensibilisation" element={<Sensibilisation />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </div>

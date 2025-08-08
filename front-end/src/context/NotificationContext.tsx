@@ -8,6 +8,7 @@ interface NotificationContextType {
   setUnreadCount: React.Dispatch<React.SetStateAction<number>>;
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
+  markAllAsRead: () => void; // ✅ Nouvelle méthode
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -29,7 +30,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         const data: Notification[] = await response.json();
 
-        // ✅ Formatage de la date
         const formattedNotifications = data.map((notif) => ({
           ...notif,
           createdAt: formatDistanceToNow(notif.createdAt),
@@ -37,7 +37,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         setNotifications(formattedNotifications);
 
-        // ✅ Mise à jour automatique du compteur
         const nonLues = data.filter((n) => !n.read).length;
         setUnreadCount(nonLues);
       } catch (error) {
@@ -46,9 +45,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     fetchNotifications();
-
-    // ✅ Optionnel : actualiser régulièrement (polling)
-    const interval = setInterval(fetchNotifications, 5000); // toutes les 5 sec
+    const interval = setInterval(fetchNotifications, 5000);
     return () => clearInterval(interval);
   }, [userId]);
 
@@ -72,10 +69,34 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         ...prev,
       ]);
 
-      // ✅ Mise à jour immédiate du badge
       setUnreadCount((prev) => prev + 1);
     } catch (error) {
       console.error("❌ Erreur lors de l'ajout de la notification", error);
+    }
+  };
+
+  // ✅ Nouvelle fonction : Marquer toutes les notifications comme lues
+  const markAllAsRead = async () => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`http://localhost:4000/notifications/${userId}/markAllAsRead`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) throw new Error('Erreur lors de la mise à jour');
+
+      // ✅ Mettre à jour l'état local
+      setNotifications((prev) =>
+        prev.map((notif) => ({
+          ...notif,
+          read: true,
+        }))
+      );
+
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour des notifications', error);
     }
   };
 
@@ -87,6 +108,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setUnreadCount,
         setNotifications,
         addNotification,
+        markAllAsRead, // ✅ Fournir la méthode dans le contexte
       }}
     >
       {children}
