@@ -22,7 +22,7 @@
     "lucide-react": "^0.511.0",
     "morgan": "^1.10.0",
     "mysql": "^2.18.1",
-    "mysql2": "^3.14.1"
+    "mysql2": "^3.14.3"
   },
   "keywords": [],
   "description": "",
