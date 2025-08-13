@@ -8,6 +8,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+
 require('dotenv').config();
 
 const app = express();
@@ -25,20 +26,9 @@ const db = mysql.createPool({
 module.exports = db;
 
 // ==============================
-// ⚙️ Middlewares globaux
-// ==============================
-app.use(bodyParser.json({ limit: '20mb' }));
-app.use(express.json({ limit: '20mb' }));
-app.use(cookieParser());
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
-
-// ==============================
 // 👨‍💻 Création de l’admin par défaut
 // ==============================
-const initializeAdmin = async () => {
+const initializeAdminLocal = async () => {
   const adminEmail = 'babdoulrazzai@gmail.com';
   const adminName = 'Admin';
   const adminPassword = 'kathioure';
@@ -60,7 +50,22 @@ const initializeAdmin = async () => {
     console.error('❌ Erreur lors de la vérification de l’administrateur :', err);
   }
 };
-initializeAdmin();
+initializeAdminLocal();
+
+
+// ==============================
+// ⚙️ Middlewares globaux
+// ==============================
+app.use(bodyParser.json({ limit: '20mb' }));
+app.use(express.json({ limit: '20mb' }));
+app.use(cookieParser());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
+//Collaboration
+const collaborationRoutes = require('./routes/collaboration');
+app.use('/api/collaboration', collaborationRoutes);
 
 // ==============================
 // 🔐 Authentification & Session
@@ -142,8 +147,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-
-
 // ✅ Déconnexion
 app.post('/logout', (req, res) => {
   res.clearCookie('userId');
@@ -185,7 +188,6 @@ app.get('/api/notifications/:id', async (req, res) => {
   }
 });
 
-//Notifs
 const notificationsRoutes = require('./routes/notifications.routes');
 app.use('/notifications', notificationsRoutes);
 
@@ -204,34 +206,19 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+
+
+
 // ==============================
 // 📊 Statistiques pour tableau de bord
 // ==============================
 app.get('/api/statistics', async (req, res) => {
   try {
-    const [[total]] = await db.query(`
-      SELECT COUNT(*) AS totalReports FROM waste_reports
-    `);
-
-    const [[resolved]] = await db.query(`
-      SELECT COUNT(*) AS completed FROM waste_reports WHERE status = 'completed'
-    `);
-
-    const [[pending]] = await db.query(`
-      SELECT COUNT(*) AS pending FROM waste_reports WHERE status != 'completed'
-    `);
-
-    const [wasteTypeStats] = await db.query(`
-      SELECT wasteType AS name, COUNT(*) AS count 
-      FROM waste_reports 
-      GROUP BY wasteType
-    `);
-
-    const [neighborhoodStats] = await db.query(`
-      SELECT address AS name, COUNT(*) AS reports 
-      FROM waste_reports 
-      GROUP BY address
-    `);
+    const [[total]] = await db.query('SELECT COUNT(*) AS totalReports FROM waste_reports');
+    const [[resolved]] = await db.query("SELECT COUNT(*) AS completed FROM waste_reports WHERE status = 'completed'");
+    const [[pending]] = await db.query("SELECT COUNT(*) AS pending FROM waste_reports WHERE status != 'completed'");
+    const [wasteTypeStats] = await db.query("SELECT wasteType AS name, COUNT(*) AS count FROM waste_reports GROUP BY wasteType");
+    const [neighborhoodStats] = await db.query("SELECT address AS name, COUNT(*) AS reports FROM waste_reports GROUP BY address");
 
     const criticalAreas = 0;
 
@@ -243,7 +230,6 @@ app.get('/api/statistics', async (req, res) => {
       reportsByNeighborhood: neighborhoodStats,
       criticalAreas
     });
-
   } catch (error) {
     console.error("❌ Erreur stats :", error);
     res.status(500).json({ message: 'Erreur serveur.' });
@@ -268,10 +254,6 @@ app.get('/api/dashboard-stats', async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
-
-
-
-
 
 // ==============================
 // 🗑️ Signalements de déchets

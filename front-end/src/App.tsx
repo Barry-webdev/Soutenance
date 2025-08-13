@@ -14,6 +14,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import StatisticsPage from './pages/StatisticsPage';
 import NotFoundPage from './pages/NotFundPage';
 import Sensibilisation from './pages/Sensibilisation';
+import CollaborationPage from "./pages/CollaborationPage";
 import './App.css';
 import {QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
@@ -56,6 +57,7 @@ function App() {
                 } />
                 <Route path="/statistics" element={<StatisticsPage />} />
                 <Route path="/sensibilisation" element={<Sensibilisation />} />
+                <Route path="/collaboration" element={<CollaborationPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </div>

@@ -1,7 +1,13 @@
+// ==========================
+// 📦 Importations
+// ==========================
 const mysql = require('mysql2');
+const mysql2 = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 
-// 🔧 Connexion à la base de données (classique)
+// ==========================
+// 🔧 Connexion classique
+// ==========================
 const db = mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -17,7 +23,39 @@ db.connect(err => {
     console.log('✅ Base de données connectée.');
 });
 
-// 🔍 Vérification de la table utilisateur et ajout d’un admin par défaut
+// ==========================
+// 🔧 Connexion via pool (mysql2/promise)
+// ==========================
+const dbPool = mysql2.createPool({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'wastemanage'
+});
+
+// ==========================
+// 🔍 Vérification de la table utilisateur
+// ==========================
+const checkTable = async () => {
+    try {
+        console.log("🔍 Vérification de l'existence de la table 'utilisateur'...");
+        const [tableExists] = await db.promise().query('SHOW TABLES LIKE "utilisateur"');
+
+        if (tableExists.length === 0) {
+            console.error("❌ La table 'utilisateur' n'existe pas. Vérifie ta base de données !");
+            return;
+        }
+
+        console.log("✅ La table 'utilisateur' existe.");
+        await checkAdmin();
+    } catch (error) {
+        console.error("❌ Erreur lors de la vérification de la table :", error);
+    }
+};
+
+// ==========================
+// 🔍 Vérification et ajout de l’admin par défaut
+// ==========================
 const checkAdmin = async () => {
     try {
         const adminEmail = 'babdoulrazzai@gmail.com';
@@ -47,41 +85,9 @@ const checkAdmin = async () => {
     }
 };
 
-const checkTable = async () => {
-    try {
-        console.log("🔍 Vérification de l'existence de la table 'utilisateur'...");
-        const [tableExists] = await db.promise().query('SHOW TABLES LIKE "utilisateur"');
-
-        if (tableExists.length === 0) {
-            console.error("❌ La table 'utilisateur' n'existe pas. Vérifie ta base de données !");
-            return;
-        }
-
-        console.log("✅ La table 'utilisateur' existe.");
-        await checkAdmin();
-    } catch (error) {
-        console.error("❌ Erreur lors de la vérification de la table :", error);
-    }
-};
-
-// 📌 Exécution de la version standard
-checkTable();
-
-
 // ==========================
-// ✅ VERSION AVEC PROMISES
+// 🔍 Initialisation via pool (mysql2/promise)
 // ==========================
-
-const mysql2 = require('mysql2/promise');
-
-// 🔧 Connexion via pool
-const dbPool = mysql2.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'wastemanage'
-});
-
 const initializeAdmin = async () => {
     const adminEmail = 'babdoulrazzai@gmail.com';
     const adminName = 'Admin';
@@ -110,9 +116,33 @@ const initializeAdmin = async () => {
     }
 };
 
-// 🚀 Exporte les deux connexions (selon le besoin du module)
+// ==========================
+// 📤 Soumission du formulaire de collaboration
+// ==========================
+const submitCollaboration = (req, res) => {
+    const { organisation, type, activite, message, email } = req.body;
+
+    const sql = 'INSERT INTO collaboration_requests (organisation, type, activite, message, email) VALUES (?, ?, ?, ?, ?)';
+    const values = [organisation, type, activite, message, email];
+
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            console.error('❌ Erreur SQL :', err);
+            return res.status(500).json({ error: 'Erreur SQL lors de l’enregistrement.' });
+        }
+
+        res.status(200).json({ success: true });
+    });
+};
+
+// ==========================
+// 🚀 Exécution et export
+// ==========================
+checkTable();
+
 module.exports = {
     db,
     dbPool,
-    initializeAdmin
+    initializeAdmin,
+    submitCollaboration
 };

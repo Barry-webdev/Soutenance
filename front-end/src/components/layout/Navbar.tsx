@@ -79,6 +79,13 @@ const Navbar: React.FC = () => {
                   🧠 Sensibilisation
             </Link>
 
+            <Link
+                  to="/collaboration"
+                  className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  🤝 Collaboration
+            </Link>
+
 
             {isAuthenticated ? (
               <>
@@ -191,15 +198,28 @@ const Navbar: React.FC = () => {
                 <BarChart2 size={18} className="mr-2" />Statistiques
               </div>
             </Link>
+
            <Link
-  to="/sensibilisation"
-  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-  onClick={toggleMenu}
->
-  <div className="flex items-center">
-    <Brain size={18} className="mr-2" />Sensibilisation
-  </div>
-</Link>
+                  to="/sensibilisation"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={toggleMenu}
+                >
+                  <div className="flex items-center">
+                    <Brain size={18} className="mr-2" />Sensibilisation
+                  </div>
+            </Link>
+
+           <Link
+                    to="/collaboration"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+                    onClick={toggleMenu}
+                  >
+                    <div className="flex items-center">
+                      🤝 Collaboration
+                    </div>
+            </Link>
+
+
 
             {isAuthenticated ? (
               <>
