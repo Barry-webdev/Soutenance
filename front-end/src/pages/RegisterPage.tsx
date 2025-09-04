@@ -50,7 +50,7 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="flex w-screen mt-5 items-center justify-center">
       <div className="card">
         <h2 className="text-2xl font-bold text-center mb-6">Créer un compte</h2>
         

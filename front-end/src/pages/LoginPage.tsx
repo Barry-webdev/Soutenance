@@ -50,7 +50,7 @@ const LoginPage: React.FC = () => {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="flex w-screen mt-28 items-center justify-center ">
       <div className="max-w-md mx-auto">
         <div className="card">
           <h2 className="text-2xl font-bold text-center mb-6">Connexion</h2>
