@@ -8,6 +8,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const collaborationRoutes = require('./routes/collaboration');
+
 
 require('dotenv').config();
 
@@ -63,9 +65,6 @@ app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true
 }));
-//Collaboration
-const collaborationRoutes = require('./routes/collaboration');
-app.use('/api/collaboration', collaborationRoutes);
 
 // ==============================
 // 🔐 Authentification & Session
@@ -205,8 +204,8 @@ app.get('/api/users', async (req, res) => {
     res.status(500).json({ message: 'Erreur serveur.' });
   }
 });
-
-
+//API Collaboration
+app.use('/api/collaborations', collaborationRoutes);
 
 
 // ==============================
