@@ -149,8 +149,10 @@ app.post('/api/login', async (req, res) => {
 // ✅ Déconnexion
 app.post('/logout', (req, res) => {
   res.clearCookie('userId');
+  res.clearCookie('token'); // ← si tu stockes le token dans un cookie
   res.status(200).json({ message: 'Déconnexion réussie.' });
 });
+
 
 // ✅ Vérification de session
 app.get('/user-session', async (req, res) => {
@@ -174,7 +176,7 @@ app.get('/user-session', async (req, res) => {
 // ==============================
 // 🔔 Notifications
 // ==============================
-app.get('/api/notifications/:id', async (req, res) => {
+app.get('/notifications/:id', async (req, res) => {
   try {
     const [notifications] = await db.query(
       'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC',
