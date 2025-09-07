@@ -8,7 +8,7 @@ interface NotificationContextType {
   setUnreadCount: React.Dispatch<React.SetStateAction<number>>;
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
-  markAllAsRead: () => void; // ✅ Nouvelle méthode
+  markAllAsRead: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -25,7 +25,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (!userId) return;
 
       try {
-        const response = await fetch(`http://localhost:4000/notifications/${userId}`);
+        const response = await fetch(`http://localhost:4000/api/notifications/${userId}`);
         if (!response.ok) throw new Error('Erreur réseau');
 
         const data: Notification[] = await response.json();
@@ -51,7 +51,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const addNotification = async (notification: Omit<Notification, 'id' | 'createdAt'>) => {
     try {
-      const response = await fetch(`http://localhost:4000/notifications`, {
+      const response = await fetch(`http://localhost:4000/api/notifications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(notification),
@@ -75,18 +75,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  // ✅ Nouvelle fonction : Marquer toutes les notifications comme lues
   const markAllAsRead = async () => {
     if (!userId) return;
 
     try {
-      const response = await fetch(`http://localhost:4000/notifications/${userId}/markAllAsRead`, {
+      const response = await fetch(`http://localhost:4000/api/notifications/${userId}/markAllAsRead`, {
         method: 'PUT',
       });
 
       if (!response.ok) throw new Error('Erreur lors de la mise à jour');
 
-      // ✅ Mettre à jour l'état local
       setNotifications((prev) =>
         prev.map((notif) => ({
           ...notif,
@@ -108,7 +106,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setUnreadCount,
         setNotifications,
         addNotification,
-        markAllAsRead, // ✅ Fournir la méthode dans le contexte
+        markAllAsRead,
       }}
     >
       {children}

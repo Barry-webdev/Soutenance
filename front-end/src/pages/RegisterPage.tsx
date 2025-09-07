@@ -65,7 +65,7 @@ const RegisterPage: React.FC = () => {
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
               Nom complet
             </label>
-            <div className="relative">
+                      <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User size={18} className="text-gray-400" />
               </div>
@@ -75,15 +75,18 @@ const RegisterPage: React.FC = () => {
                 type="text"
                 autoComplete="name"
                 required
-                className="form-input pl-10"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg 
+                          focus:outline-none focus:ring-2 focus:ring-green-400 
+                          focus:border-green-400 text-sm"
                 placeholder="Votre nom"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
           </div>
-          
-          <div>
+
+          {/* Champ Email */}
+          <div className="mt-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Adresse e-mail
             </label>
@@ -97,15 +100,18 @@ const RegisterPage: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="form-input pl-10"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg 
+                          focus:outline-none focus:ring-2 focus:ring-green-400 
+                          focus:border-green-400 text-sm"
                 placeholder="votre@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </div>
-          
-          <div>
+
+          {/* Champ Mot de passe */}
+          <div className="mt-4">
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
               Mot de passe
             </label>
@@ -119,15 +125,18 @@ const RegisterPage: React.FC = () => {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="form-input pl-10"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg 
+                          focus:outline-none focus:ring-2 focus:ring-green-400 
+                          focus:border-green-400 text-sm"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </div>
-          
-          <div>
+
+          {/* Champ Confirmation mot de passe */}
+          <div className="mt-4">
             <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
               Confirmer le mot de passe
             </label>
@@ -141,7 +150,9 @@ const RegisterPage: React.FC = () => {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="form-input pl-10"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg 
+                          focus:outline-none focus:ring-2 focus:ring-green-400 
+                          focus:border-green-400 text-sm"
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
