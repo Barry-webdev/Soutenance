@@ -1,5 +1,7 @@
-// services/wordExportService.js
-import { 
+// services/wordExport.js
+import docx from 'docx';
+
+const { 
     Document, 
     Paragraph, 
     Table, 
@@ -11,30 +13,39 @@ import {
     WidthType,
     BorderStyle,
     Packer
-} from 'docx';
-import pkg from 'file-saver';
-const { saveAs } = pkg;
+} = docx;
 
-export class WordExportService {
+class WordExportService {
     
     /**
      * Exporter les signalements de déchets
      */
     static async exportWasteReports(reports, filters = {}) {
         try {
+            console.log('📝 Génération document Word pour signalements...');
+            
             const title = "Rapport des Signalements de Déchets";
-            const sections = [
+            const children = [
                 this.createTitleSection(title),
                 this.createFiltersSection(filters),
                 this.createWasteReportsTable(reports),
-                this.createSummarySection(reports)
+                this.createWasteSummarySection(reports)
             ];
 
+            // Filtrer les éléments vides
+            const filteredChildren = children.filter(child => child !== null);
+
             const doc = new Document({
-                sections: [{ children: sections }]
+                sections: [{
+                    properties: {},
+                    children: filteredChildren
+                }]
             });
 
-            return await this.generateDocumentBuffer(doc);
+            const buffer = await Packer.toBuffer(doc);
+            console.log(`✅ Document généré - Taille: ${buffer.length} bytes`);
+            
+            return buffer;
         } catch (error) {
             console.error('❌ Erreur export signalements:', error);
             throw error;
@@ -46,19 +57,30 @@ export class WordExportService {
      */
     static async exportCollaborations(collaborations, filters = {}) {
         try {
+            console.log('📝 Génération document Word pour collaborations...');
+            
             const title = "Rapport des Demandes de Collaboration";
-            const sections = [
+            const children = [
                 this.createTitleSection(title),
                 this.createFiltersSection(filters),
                 this.createCollaborationsTable(collaborations),
                 this.createCollaborationsSummary(collaborations)
             ];
 
+            // Filtrer les éléments vides
+            const filteredChildren = children.filter(child => child !== null);
+
             const doc = new Document({
-                sections: [{ children: sections }]
+                sections: [{
+                    properties: {},
+                    children: filteredChildren
+                }]
             });
 
-            return await this.generateDocumentBuffer(doc);
+            const buffer = await Packer.toBuffer(doc);
+            console.log(`✅ Document collaborations généré - Taille: ${buffer.length} bytes`);
+            
+            return buffer;
         } catch (error) {
             console.error('❌ Erreur export collaborations:', error);
             throw error;
@@ -70,18 +92,25 @@ export class WordExportService {
      */
     static async exportStatistics(statsData) {
         try {
+            console.log('📝 Génération document Word pour statistiques...');
+            
             const title = "Rapport Statistique - Waste Management";
-            const sections = [
+            const children = [
                 this.createTitleSection(title),
-                this.createStatisticsSection(statsData),
-                this.createChartsSummary(statsData)
+                ...this.createStatisticsSection(statsData)
             ];
 
             const doc = new Document({
-                sections: [{ children: sections }]
+                sections: [{
+                    properties: {},
+                    children: children
+                }]
             });
 
-            return await this.generateDocumentBuffer(doc);
+            const buffer = await Packer.toBuffer(doc);
+            console.log(`✅ Document statistiques généré - Taille: ${buffer.length} bytes`);
+            
+            return buffer;
         } catch (error) {
             console.error('❌ Erreur export statistiques:', error);
             throw error;
@@ -96,8 +125,7 @@ export class WordExportService {
             text: title,
             heading: HeadingLevel.TITLE,
             alignment: AlignmentType.CENTER,
-            spacing: { after: 400 },
-            border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: "2E86AB" } }
+            spacing: { after: 400 }
         });
     }
 
@@ -106,7 +134,9 @@ export class WordExportService {
      */
     static createFiltersSection(filters) {
         const filterEntries = Object.entries(filters);
-        if (filterEntries.length === 0) return new Paragraph({ text: "" });
+        if (filterEntries.length === 0) {
+            return null;
+        }
 
         const filterText = filterEntries.map(([key, value]) => 
             `${this.formatFilterKey(key)}: ${value}`
@@ -130,13 +160,18 @@ export class WordExportService {
      * Créer le tableau des signalements
      */
     static createWasteReportsTable(reports) {
+        if (!reports || reports.length === 0) {
+            return new Paragraph({
+                text: "Aucun signalement trouvé pour les critères sélectionnés.",
+                alignment: AlignmentType.CENTER
+            });
+        }
+
         const headerRow = new TableRow({
             children: [
-                this.createHeaderCell("ID"),
                 this.createHeaderCell("Description"),
                 this.createHeaderCell("Type"),
                 this.createHeaderCell("Statut"),
-                this.createHeaderCell("Localisation"),
                 this.createHeaderCell("Date"),
                 this.createHeaderCell("Utilisateur")
             ]
@@ -145,11 +180,9 @@ export class WordExportService {
         const dataRows = reports.map(report => 
             new TableRow({
                 children: [
-                    this.createDataCell(report._id.toString().substring(0, 8)),
-                    this.createDataCell(report.description),
+                    this.createDataCell(report.description || 'N/A'),
                     this.createDataCell(this.formatWasteType(report.wasteType)),
                     this.createDataCell(this.formatStatus(report.status)),
-                    this.createDataCell(`${report.location.lat}, ${report.location.lng}`),
                     this.createDataCell(new Date(report.createdAt).toLocaleDateString('fr-FR')),
                     this.createDataCell(report.userId?.name || 'N/A')
                 ]
@@ -167,6 +200,13 @@ export class WordExportService {
      * Créer le tableau des collaborations
      */
     static createCollaborationsTable(collaborations) {
+        if (!collaborations || collaborations.length === 0) {
+            return new Paragraph({
+                text: "Aucune demande de collaboration trouvée.",
+                alignment: AlignmentType.CENTER
+            });
+        }
+
         const headerRow = new TableRow({
             children: [
                 this.createHeaderCell("Organisation"),
@@ -198,6 +238,72 @@ export class WordExportService {
     }
 
     /**
+     * Créer la section de résumé pour les signalements
+     */
+    static createWasteSummarySection(reports) {
+        if (!reports || reports.length === 0) {
+            return new Paragraph({
+                text: "Résumé: Aucun signalement à afficher.",
+                alignment: AlignmentType.CENTER
+            });
+        }
+
+        const total = reports.length;
+        const byStatus = reports.reduce((acc, report) => {
+            acc[report.status] = (acc[report.status] || 0) + 1;
+            return acc;
+        }, {});
+
+        const byType = reports.reduce((acc, report) => {
+            acc[report.wasteType] = (acc[report.wasteType] || 0) + 1;
+            return acc;
+        }, {});
+
+        return new Paragraph({
+            children: [
+                new TextRun({ text: "Résumé: ", bold: true }),
+                new TextRun({ text: `Total: ${total} signalements`, break: 1 }),
+                new TextRun({ text: `Statuts: ${JSON.stringify(byStatus)}`, break: 1 }),
+                new TextRun({ text: `Types: ${JSON.stringify(byType)}`, break: 1 })
+            ],
+            spacing: { before: 200 }
+        });
+    }
+
+    /**
+     * Créer la section de résumé pour les collaborations
+     */
+    static createCollaborationsSummary(collaborations) {
+        if (!collaborations || collaborations.length === 0) {
+            return new Paragraph({
+                text: "Résumé: Aucune collaboration à afficher.",
+                alignment: AlignmentType.CENTER
+            });
+        }
+
+        const total = collaborations.length;
+        const byStatus = collaborations.reduce((acc, collab) => {
+            acc[collab.status] = (acc[collab.status] || 0) + 1;
+            return acc;
+        }, {});
+
+        const byType = collaborations.reduce((acc, collab) => {
+            acc[collab.type] = (acc[collab.type] || 0) + 1;
+            return acc;
+        }, {});
+
+        return new Paragraph({
+            children: [
+                new TextRun({ text: "Résumé Collaborations: ", bold: true }),
+                new TextRun({ text: `Total: ${total} demandes`, break: 1 }),
+                new TextRun({ text: `Statuts: ${JSON.stringify(byStatus)}`, break: 1 }),
+                new TextRun({ text: `Types: ${JSON.stringify(byType)}`, break: 1 })
+            ],
+            spacing: { before: 200 }
+        });
+    }
+
+    /**
      * Créer la section des statistiques
      */
     static createStatisticsSection(stats) {
@@ -206,32 +312,64 @@ export class WordExportService {
         // Statistiques utilisateurs
         sections.push(new Paragraph({
             text: "Statistiques Utilisateurs",
-            heading: HeadingLevel.HEADING_2
+            heading: HeadingLevel.HEADING_2,
+            spacing: { after: 100 }
         }));
 
         sections.push(new Paragraph({
-            children: [
-                new TextRun({ text: `Total Utilisateurs: ${stats.users.total}`, bold: true }),
-                new TextRun({ text: ` | Citoyens: ${stats.users.citizens}`, break: 1 }),
-                new TextRun({ text: ` | Administrateurs: ${stats.users.admins}`, break: 1 }),
-                new TextRun({ text: ` | Partenaires: ${stats.users.partners}`, break: 1 })
-            ]
+            text: `• Total Utilisateurs: ${stats.users?.total || 0}`
+        }));
+
+        sections.push(new Paragraph({
+            text: `• Citoyens: ${stats.users?.citizens || 0}`
+        }));
+
+        sections.push(new Paragraph({
+            text: `• Administrateurs: ${stats.users?.admins || 0}`
+        }));
+
+        sections.push(new Paragraph({
+            text: `• Partenaires: ${stats.users?.partners || 0}`,
+            spacing: { after: 200 }
         }));
 
         // Statistiques signalements
         sections.push(new Paragraph({
             text: "Statistiques Signalements",
             heading: HeadingLevel.HEADING_2,
-            spacing: { before: 200 }
+            spacing: { after: 100 }
         }));
 
         sections.push(new Paragraph({
-            children: [
-                new TextRun({ text: `Total Signalements: ${stats.wasteReports.total}`, bold: true }),
-                new TextRun({ text: ` | En attente: ${stats.wasteReports.pending}`, break: 1 }),
-                new TextRun({ text: ` | Collectés: ${stats.wasteReports.collected}`, break: 1 }),
-                new TextRun({ text: ` | Non collectés: ${stats.wasteReports.not_collected || 0}`, break: 1 })
-            ]
+            text: `• Total Signalements: ${stats.wasteReports?.total || 0}`
+        }));
+
+        sections.push(new Paragraph({
+            text: `• En attente: ${stats.wasteReports?.pending || 0}`
+        }));
+
+        sections.push(new Paragraph({
+            text: `• Collectés: ${stats.wasteReports?.collected || 0}`,
+            spacing: { after: 200 }
+        }));
+
+        // Statistiques collaborations
+        sections.push(new Paragraph({
+            text: "Statistiques Collaborations",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { after: 100 }
+        }));
+
+        sections.push(new Paragraph({
+            text: `• Total Collaborations: ${stats.collaborations?.total || 0}`
+        }));
+
+        sections.push(new Paragraph({
+            text: `• En attente: ${stats.collaborations?.pending || 0}`
+        }));
+
+        sections.push(new Paragraph({
+            text: `• Approuvées: ${stats.collaborations?.approved || 0}`
         }));
 
         return sections;
@@ -246,8 +384,7 @@ export class WordExportService {
                 text, 
                 alignment: AlignmentType.CENTER 
             })],
-            shading: { fill: "2E86AB" },
-            margins: { top: 100, bottom: 100, left: 100, right: 100 }
+            shading: { fill: "E0E0E0" }
         });
     }
 
@@ -256,15 +393,8 @@ export class WordExportService {
      */
     static createDataCell(text) {
         return new TableCell({
-            children: [new Paragraph({ text })]
+            children: [new Paragraph({ text: text || 'N/A' })]
         });
-    }
-
-    /**
-     * Générer le buffer du document
-     */
-    static async generateDocumentBuffer(doc) {
-        return await Packer.toBuffer(doc);
     }
 
     /**
@@ -311,3 +441,5 @@ export class WordExportService {
         return keyMap[key] || key;
     }
 }
+
+export { WordExportService };
