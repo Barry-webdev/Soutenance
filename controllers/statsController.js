@@ -2,6 +2,7 @@
 import User from '../models/userModel.js';
 import WasteReport from '../models/wasteReportModel.js';
 import CollaborationRequest from '../models/collaborationRequestModel.js';
+import { logManualAudit } from '../middlewares/auditMiddleware.js';
 
 /**
  * Récupérer les statistiques générales (Admin)
@@ -78,6 +79,18 @@ export const getStats = async (req, res) => {
             }
         ]);
 
+        // Audit pour consultation des statistiques générales
+        await logManualAudit(
+            'STATS_VIEW_GENERAL',
+            req.user,
+            `Consultation des statistiques générales`,
+            { 
+                usersTotal: totalUsers,
+                wasteReportsTotal: totalWasteReports,
+                collaborationsTotal: totalCollaborations 
+            }
+        );
+
         res.json({
             success: true,
             data: {
@@ -104,6 +117,15 @@ export const getStats = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Erreur récupération statistiques:', error);
+        
+        // Audit pour erreur récupération statistiques
+        await logManualAudit(
+            'SYSTEM_ERROR',
+            req.user,
+            `Erreur lors de la récupération des statistiques: ${error.message}`,
+            { error: error.message, endpoint: '/stats' }
+        );
+        
         res.status(500).json({ 
             success: false,
             error: 'Erreur serveur' 
@@ -132,6 +154,18 @@ export const getDashboardStats = async (req, res) => {
             User.find().sort({ points: -1 }).limit(5).select('name email points')
         ]);
 
+        // Audit pour consultation du dashboard
+        await logManualAudit(
+            'DASHBOARD_VIEW',
+            req.user,
+            `Consultation du tableau de bord administrateur`,
+            { 
+                recentUsers,
+                recentWasteReports,
+                recentCollaborations 
+            }
+        );
+
         res.json({
             success: true,
             data: {
@@ -146,6 +180,15 @@ export const getDashboardStats = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Erreur récupération stats dashboard:', error);
+        
+        // Audit pour erreur récupération dashboard
+        await logManualAudit(
+            'SYSTEM_ERROR',
+            req.user,
+            `Erreur lors de la récupération du dashboard: ${error.message}`,
+            { error: error.message, endpoint: '/stats/dashboard' }
+        );
+        
         res.status(500).json({ 
             success: false,
             error: 'Erreur serveur' 
