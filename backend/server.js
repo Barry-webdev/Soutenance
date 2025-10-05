@@ -10,6 +10,9 @@ import userRoutes from './routes/userRoute.js';
 import wasteRoutes from './routes/wasteRoute.js';
 import collaborationRoutes from './routes/collaborationRoute.js';
 import statsRoutes from './routes/statsRoute.js';
+import exportRoutes from './routes/exportWordRoute.js';
+import auditRoutes from './routes/auditLogRoute.js';
+
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 
 const app = express();
@@ -41,6 +44,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/waste', wasteRoutes);
 app.use('/api/collaborations', collaborationRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/export', exportRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Page d'accueil
 app.get('/', (req, res) => {
