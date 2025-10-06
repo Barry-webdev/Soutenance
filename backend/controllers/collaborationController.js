@@ -1,6 +1,6 @@
-// controllers/collaborationController.js
 import CollaborationRequest from '../models/collaborationRequestModel.js';
 import { logManualAudit } from '../middlewares/auditMiddleware.js';
+import NotificationService from '../services/notification.js';
 
 /**
  * Soumettre une demande de collaboration
@@ -16,6 +16,12 @@ export const submitCollaborationRequest = async (req, res) => {
             phone,
             type
         });
+
+        // 🔔 NOTIFICATION: Alertes aux admins pour nouvelle demande
+        await NotificationService.notifyAdminsNewCollaboration(collaborationRequest);
+
+        // 🔔 NOTIFICATION: Accusé de réception à l'organisation
+        await NotificationService.notifyOrganizationRequestReceived(collaborationRequest);
 
         // Audit pour demande de collaboration soumise
         await logManualAudit(
@@ -138,6 +144,9 @@ export const updateCollaborationRequestStatus = async (req, res) => {
             });
         }
 
+        // Récupérer la demande avant modification pour l'audit et les notifications
+        const requestBeforeUpdate = await CollaborationRequest.findById(req.params.id);
+
         const collaborationRequest = await CollaborationRequest.findByIdAndUpdate(
             req.params.id,
             { status },
@@ -159,6 +168,20 @@ export const updateCollaborationRequestStatus = async (req, res) => {
             });
         }
 
+        // 🔔 NOTIFICATION: Statut mis à jour à l'organisation
+        if (requestBeforeUpdate.status !== status) {
+            await NotificationService.notifyOrganizationRequestStatus(
+                collaborationRequest, 
+                requestBeforeUpdate.status, 
+                status
+            );
+        }
+
+        // 🔔 NOTIFICATION: Si la demande est approuvée, notifier les admins pour suivi
+        if (status === 'approved') {
+            await NotificationService.notifyAdminsCollaborationApproved(collaborationRequest);
+        }
+
         // Audit pour mise à jour du statut
         await logManualAudit(
             'COLLABORATION_STATUS_UPDATE',
@@ -167,7 +190,7 @@ export const updateCollaborationRequestStatus = async (req, res) => {
             { 
                 collaborationId: collaborationRequest._id,
                 organization: collaborationRequest.organizationName,
-                oldStatus: collaborationRequest.status,
+                oldStatus: requestBeforeUpdate.status,
                 newStatus: status 
             }
         );
@@ -190,6 +213,112 @@ export const updateCollaborationRequestStatus = async (req, res) => {
                 collaborationId: req.params.id,
                 endpoint: `/collaborations/${req.params.id}/status` 
             }
+        );
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Erreur serveur' 
+        });
+    }
+};
+
+/**
+ * Supprimer une demande de collaboration (Admin)
+ */
+export const deleteCollaborationRequest = async (req, res) => {
+    try {
+        const collaborationRequest = await CollaborationRequest.findById(req.params.id);
+
+        if (!collaborationRequest) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Demande de collaboration non trouvée' 
+            });
+        }
+
+        // 🔔 NOTIFICATION: Notification à l'organisation si la demande est supprimée
+        await NotificationService.notifyOrganizationRequestDeleted(collaborationRequest);
+
+        await CollaborationRequest.findByIdAndDelete(req.params.id);
+
+        // Audit pour suppression
+        await logManualAudit(
+            'COLLABORATION_DELETE',
+            req.user,
+            `Demande de collaboration supprimée`,
+            { 
+                collaborationId: collaborationRequest._id,
+                organization: collaborationRequest.organizationName,
+                contact: collaborationRequest.contactPerson
+            }
+        );
+
+        res.json({
+            success: true,
+            message: 'Demande de collaboration supprimée avec succès'
+        });
+    } catch (error) {
+        console.error('❌ Erreur suppression collaboration:', error);
+        
+        // Audit pour erreur suppression
+        await logManualAudit(
+            'SYSTEM_ERROR',
+            req.user,
+            `Erreur lors de la suppression de la collaboration: ${error.message}`,
+            { 
+                error: error.message, 
+                collaborationId: req.params.id,
+                endpoint: `/collaborations/${req.params.id}` 
+            }
+        );
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Erreur serveur' 
+        });
+    }
+};
+
+/**
+ * Récupérer les statistiques des collaborations (Admin)
+ */
+export const getCollaborationStats = async (req, res) => {
+    try {
+        const stats = await CollaborationRequest.aggregate([
+            {
+                $group: {
+                    _id: '$status',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const total = await CollaborationRequest.countDocuments();
+
+        // Audit pour consultation des statistiques
+        await logManualAudit(
+            'COLLABORATION_STATS_VIEW',
+            req.user,
+            `Consultation des statistiques des collaborations`,
+            { total: total }
+        );
+
+        res.json({
+            success: true,
+            data: {
+                stats,
+                total
+            }
+        });
+    } catch (error) {
+        console.error('❌ Erreur récupération statistiques:', error);
+        
+        // Audit pour erreur récupération statistiques
+        await logManualAudit(
+            'SYSTEM_ERROR',
+            req.user,
+            `Erreur lors de la récupération des statistiques de collaboration: ${error.message}`,
+            { error: error.message, endpoint: '/collaborations/stats' }
         );
         
         res.status(500).json({ 
