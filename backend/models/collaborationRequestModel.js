@@ -1,4 +1,3 @@
-// models/CollaborationRequest.js
 import mongoose from 'mongoose';
 
 const collaborationRequestSchema = new mongoose.Schema({

@@ -1,4 +1,3 @@
-// controllers/statsController.js
 import User from '../models/userModel.js';
 import WasteReport from '../models/wasteReportModel.js';
 import CollaborationRequest from '../models/collaborationRequestModel.js';

@@ -1,4 +1,3 @@
-// controllers/exportController.js
 import { WordExportService } from '../services/wordExport.js';
 import WasteReport from '../models/wasteReportModel.js';
 import CollaborationRequest from '../models/collaborationRequestModel.js';

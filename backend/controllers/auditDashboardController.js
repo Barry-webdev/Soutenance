@@ -1,4 +1,3 @@
-// controllers/auditDashboardController.js
 import AuditLog from '../models/auditLogModel.js';
 
 /**
