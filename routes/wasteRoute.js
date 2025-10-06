@@ -1,4 +1,3 @@
-// routes/wasteRoutes.js
 import express from 'express';
 import { 
     createWasteReport, 
