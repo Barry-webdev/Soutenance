@@ -13,7 +13,7 @@ const createDefaultAdmin = async () => {
         
         const adminEmail = 'babdoulrazzai@gmail.com';
         const adminPassword = 'kathioure';
-        const adminName = 'Abdoul Razzai BAH';
+        const adminName = 'Abdoul Razzai BARRY';
         
         // Vérifier si l'admin existe déjà
         const existingAdmin = await User.findOne({ email: adminEmail });
