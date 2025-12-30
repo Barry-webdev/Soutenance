@@ -1,4 +1,3 @@
-// routes/collaborationRoutes.js
 import express from 'express';
 import { 
     submitCollaborationRequest, 

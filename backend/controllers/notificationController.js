@@ -1,4 +1,5 @@
 import Notification from '../models/notificationModel.js';
+import NotificationService from '../services/notification.js';
 import { logManualAudit } from '../middlewares/auditMiddleware.js';
 
 /**
@@ -6,25 +7,28 @@ import { logManualAudit } from '../middlewares/auditMiddleware.js';
  */
 export const getUserNotifications = async (req, res) => {
     try {
-        const notifications = await Notification.find({ userId: req.params.userId })
-            .sort({ createdAt: -1 })
-            .limit(50);
+        const { page = 1, limit = 20, unreadOnly = false } = req.query;
+
+        const result = await NotificationService.getUserNotifications(req.user._id, {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            unreadOnly: unreadOnly === 'true'
+        });
 
         // Audit pour consultation des notifications
         await logManualAudit(
             'NOTIFICATIONS_VIEW',
             req.user,
             `Consultation des notifications utilisateur`,
-            { userId: req.params.userId, count: notifications.length }
+            { userId: req.user._id, count: result.notifications.length }
         );
 
         res.json({
             success: true,
-            data: notifications
+            data: result
         });
     } catch (error) {
         console.error('❌ Erreur récupération notifications:', error);
-        
         res.status(500).json({ 
             success: false,
             error: 'Erreur serveur' 
@@ -88,10 +92,9 @@ export const createNotification = async (req, res) => {
  */
 export const markNotificationAsRead = async (req, res) => {
     try {
-        const notification = await Notification.findByIdAndUpdate(
-            req.params.id,
-            { read: true },
-            { new: true }
+        const notification = await NotificationService.markAsRead(
+            req.params.id, 
+            req.user._id
         );
 
         if (!notification) {
@@ -116,7 +119,6 @@ export const markNotificationAsRead = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Erreur marquage notification:', error);
-        
         res.status(500).json({ 
             success: false,
             error: 'Erreur serveur' 
@@ -129,27 +131,23 @@ export const markNotificationAsRead = async (req, res) => {
  */
 export const markAllNotificationsAsRead = async (req, res) => {
     try {
-        const result = await Notification.updateMany(
-            { userId: req.params.userId, read: false },
-            { read: true }
-        );
+        const result = await NotificationService.markAllAsRead(req.user._id);
 
         // Audit pour marquage toutes notifications
         await logManualAudit(
             'NOTIFICATIONS_READ_ALL',
             req.user,
             `Toutes les notifications marquées comme lues`,
-            { userId: req.params.userId, count: result.modifiedCount }
+            { userId: req.user._id, count: result.modifiedCount }
         );
 
         res.json({
             success: true,
             message: `${result.modifiedCount} notifications marquées comme lues`,
-            data: { modifiedCount: result.modifiedCount }
+            data: result
         });
     } catch (error) {
         console.error('❌ Erreur marquage toutes notifications:', error);
-        
         res.status(500).json({ 
             success: false,
             error: 'Erreur serveur' 
@@ -162,23 +160,22 @@ export const markAllNotificationsAsRead = async (req, res) => {
  */
 export const getUnreadCount = async (req, res) => {
     try {
-        const count = await Notification.countDocuments({ 
-            userId: req.params.userId, 
-            read: false 
+        const result = await NotificationService.getUserNotifications(req.user._id, {
+            unreadOnly: true,
+            limit: 1
         });
 
         res.json({
             success: true,
-            data: { count }
+            data: {
+                unreadCount: result.pagination.unreadCount
+            }
         });
     } catch (error) {
         console.error('❌ Erreur comptage notifications:', error);
-        
         res.status(500).json({ 
             success: false,
             error: 'Erreur serveur' 
         });
     }
 };
-
-

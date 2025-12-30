@@ -1,4 +1,3 @@
-// models/AuditLog.js
 import mongoose from 'mongoose';
 
 const auditLogSchema = new mongoose.Schema({
