@@ -4,6 +4,103 @@ import CollaborationRequest from '../models/collaborationRequestModel.js';
 import { logManualAudit } from '../middlewares/auditMiddleware.js';
 
 /**
+ * Statistiques publiques (pour tous les utilisateurs)
+ */
+export const getPublicStats = async (req, res) => {
+    try {
+        const [
+            totalWasteReports,
+            collectedWasteReports,
+            totalUsers,
+            totalCollaborations
+        ] = await Promise.all([
+            WasteReport.countDocuments(),
+            WasteReport.countDocuments({ status: 'collected' }),
+            User.countDocuments({ role: 'citizen' }),
+            CollaborationRequest.countDocuments({ status: 'approved' })
+        ]);
+
+        // Statistiques par type de déchet (publiques)
+        const wasteByType = await WasteReport.aggregate([
+            {
+                $group: {
+                    _id: '$wasteType',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Évolution des signalements sur 30 jours
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const reportsLast30Days = await WasteReport.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: thirtyDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: "$createdAt"
+                        }
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            }
+        ]);
+
+        // Audit pour consultation des statistiques publiques
+        await logManualAudit(
+            'STATS_VIEW_PUBLIC',
+            req.user,
+            `Consultation des statistiques publiques`,
+            { 
+                wasteReportsTotal: totalWasteReports,
+                collectedReports: collectedWasteReports 
+            }
+        );
+
+        res.json({
+            success: true,
+            data: {
+                summary: {
+                    totalReports: totalWasteReports,
+                    collectedReports: collectedWasteReports,
+                    totalCitizens: totalUsers,
+                    activePartnerships: totalCollaborations,
+                    collectionRate: totalWasteReports > 0 ? Math.round((collectedWasteReports / totalWasteReports) * 100) : 0
+                },
+                wasteByType,
+                reportsLast30Days,
+                period: '30 derniers jours'
+            }
+        });
+    } catch (error) {
+        console.error('❌ Erreur récupération statistiques publiques:', error);
+        
+        // Audit pour erreur récupération statistiques publiques
+        await logManualAudit(
+            'SYSTEM_ERROR',
+            req.user,
+            `Erreur lors de la récupération des statistiques publiques: ${error.message}`,
+            { error: error.message, endpoint: '/stats/public' }
+        );
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Erreur serveur' 
+        });
+    }
+};
+
+/**
  * Récupérer les statistiques générales (Admin)
  */
 export const getStats = async (req, res) => {
