@@ -1,19 +1,17 @@
 // services/wordExport.js
-import docx from 'docx';
-
-const { 
+import { 
     Document, 
+    Packer, 
     Paragraph, 
-    Table, 
-    TableCell, 
-    TableRow, 
-    HeadingLevel,
     TextRun,
+    Table,
+    TableCell,
+    TableRow,
+    HeadingLevel,
     AlignmentType,
     WidthType,
-    BorderStyle,
-    Packer
-} = docx;
+    BorderStyle
+} from 'docx';
 
 class WordExportService {
     

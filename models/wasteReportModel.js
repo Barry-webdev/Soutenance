@@ -12,9 +12,83 @@ const wasteReportSchema = new mongoose.Schema({
         trim: true,
         maxlength: [500, 'La description ne peut pas dépasser 500 caractères']
     },
-    imageUrl: {
-        type: String,
-        required: false // Optionnel selon le cahier des charges
+    images: {
+        original: {
+            url: {
+                type: String,
+                required: false
+            },
+            filename: {
+                type: String,
+                required: false
+            },
+            size: {
+                type: Number, // Taille en bytes
+                required: false
+            },
+            dimensions: {
+                width: {
+                    type: Number,
+                    required: false
+                },
+                height: {
+                    type: Number,
+                    required: false
+                }
+            },
+            mimeType: {
+                type: String,
+                required: false
+            }
+        },
+        thumbnail: {
+            url: {
+                type: String,
+                required: false
+            },
+            filename: {
+                type: String,
+                required: false
+            },
+            size: {
+                type: Number,
+                required: false
+            },
+            dimensions: {
+                width: {
+                    type: Number,
+                    required: false
+                },
+                height: {
+                    type: Number,
+                    required: false
+                }
+            }
+        },
+        medium: {
+            url: {
+                type: String,
+                required: false
+            },
+            filename: {
+                type: String,
+                required: false
+            },
+            size: {
+                type: Number,
+                required: false
+            },
+            dimensions: {
+                width: {
+                    type: Number,
+                    required: false
+                },
+                height: {
+                    type: Number,
+                    required: false
+                }
+            }
+        }
     },
     location: {
         lat: {

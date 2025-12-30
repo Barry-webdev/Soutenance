@@ -11,7 +11,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "bcrypt": "^5.1.0",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "docx": "^8.0.0",
     "dotenv": "^16.3.1",
@@ -21,7 +21,11 @@
     "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
-    "validator": "^13.11.0"
+    "multer": "^1.4.5-lts.1",
+    "sharp": "^0.32.6",
+    "uuid": "^9.0.1",
+    "validator": "^13.11.0",
+    "whatwg-url": "^15.1.0"
   },
   "devDependencies": {
     "jest": "^29.6.2",

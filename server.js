@@ -12,6 +12,7 @@ import collaborationRoutes from './routes/collaborationRoute.js';
 import statsRoutes from './routes/statsRoute.js';
 import exportRoutes from './routes/exportWordRoute.js';
 import auditRoutes from './routes/auditLogRoute.js';
+import notificationRoutes from './routes/notificationRoute.js';
 
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 
@@ -38,6 +39,9 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Servir les fichiers statiques (images)
+app.use('/uploads', express.static('uploads'));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -46,6 +50,7 @@ app.use('/api/collaborations', collaborationRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Page d'accueil
 app.get('/', (req, res) => {
@@ -61,7 +66,7 @@ app.get('/', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
     console.log(`🚀 Serveur démarré sur le port ${PORT}`);
     console.log(`📊 Environnement: ${process.env.NODE_ENV || 'development'}`);
