@@ -1,4 +1,3 @@
-// routes/auditRoutes.js
 import express from 'express';
 import { getAuditLogs, getAuditStats, searchAuditLogs } from '../controllers/auditLogController.js';
 import { authenticate, requireAdmin } from '../middlewares/authMiddleware.js';

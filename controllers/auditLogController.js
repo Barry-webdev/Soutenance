@@ -1,4 +1,3 @@
-// controllers/auditController.js
 import AuditLog from '../models/auditLogModel.js';
 import User from '../models/userModel.js';
 

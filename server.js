@@ -1,4 +1,3 @@
-// server.js
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -13,7 +12,6 @@ import statsRoutes from './routes/statsRoute.js';
 import exportRoutes from './routes/exportWordRoute.js';
 import auditRoutes from './routes/auditLogRoute.js';
 import notificationRoutes from './routes/notificationRoute.js';
-
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 
 const app = express();

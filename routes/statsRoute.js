@@ -1,4 +1,3 @@
-// routes/statsRoutes.js
 import express from 'express';
 import { getStats, getDashboardStats } from '../controllers/statsController.js';
 import { authenticate, requireAdmin } from '../middlewares/authMiddleware.js';

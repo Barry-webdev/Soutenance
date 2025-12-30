@@ -1,8 +1,8 @@
-// controllers/wasteController.js
 import WasteReport from '../models/wasteReportModel.js';
 import User from '../models/userModel.js';
 import { logManualAudit } from '../middlewares/auditMiddleware.js';
 import ImageService from '../services/imageService.js';
+import NotificationService from '../services/notification.js';
 
 /**
  * Créer un signalement de déchet
@@ -36,6 +36,16 @@ export const createWasteReport = async (req, res) => {
         await User.findByIdAndUpdate(req.user._id, {
             $inc: { points: 10 } // 10 points par signalement
         });
+
+        // 🔔 NOTIFICATION: Points attribués au citoyen
+        await NotificationService.notifyUserPointsAwarded(
+            req.user._id, 
+            10, 
+            'la création d\'un signalement de déchet'
+        );
+
+        // 🔔 NOTIFICATION: Alertes aux admins
+        await NotificationService.notifyAdminsNewWasteReport(wasteReport);
 
         // Audit pour création de signalement
         await logManualAudit(
@@ -209,7 +219,7 @@ export const updateWasteReportStatus = async (req, res) => {
             });
         }
 
-        // Récupérer le signalement avant modification pour l'audit
+        // Récupérer le signalement avant modification pour l'audit et les notifications
         const reportBeforeUpdate = await WasteReport.findById(req.params.id);
 
         const wasteReport = await WasteReport.findByIdAndUpdate(
@@ -231,6 +241,15 @@ export const updateWasteReportStatus = async (req, res) => {
                 success: false,
                 error: 'Signalement non trouvé' 
             });
+        }
+
+        // 🔔 NOTIFICATION: Changement de statut à l'utilisateur
+        if (reportBeforeUpdate.status !== status) {
+            await NotificationService.notifyUserWasteReportStatus(
+                wasteReport, 
+                reportBeforeUpdate.status, 
+                status
+            );
         }
 
         // Audit pour mise à jour du statut
@@ -274,15 +293,15 @@ export const updateWasteReportStatus = async (req, res) => {
 };
 
 /**
- * Supprimer un signalement de déchet
+ * Supprimer un signalement de déchet (Admin seulement)
  */
 export const deleteWasteReport = async (req, res) => {
     try {
         const wasteReport = await WasteReport.findById(req.params.id);
-        
+
         if (!wasteReport) {
             return res.status(404).json({ 
-                success: false, 
+                success: false,
                 error: 'Signalement non trouvé' 
             });
         }
@@ -292,7 +311,14 @@ export const deleteWasteReport = async (req, res) => {
             await ImageService.deleteImages(wasteReport.images);
         }
 
-        // Supprimer le signalement
+        // 🔔 NOTIFICATION: Notification à l'utilisateur si son signalement est supprimé
+        if (wasteReport.userId.toString() !== req.user._id.toString()) {
+            await NotificationService.notifyUserWasteReportDeleted(
+                wasteReport.userId,
+                wasteReport
+            );
+        }
+
         await WasteReport.findByIdAndDelete(req.params.id);
 
         // Audit pour suppression
@@ -321,60 +347,6 @@ export const deleteWasteReport = async (req, res) => {
         res.status(500).json({ 
             success: false, 
             error: 'Erreur serveur lors de la suppression' 
-        });
-    }
-};
-
-/**
- * Récupérer les signalements sur une carte (géolocalisation)
- */
-export const getWasteReportsMap = async (req, res) => {
-    try {
-        const { lat, lng, radius = 10000 } = req.query; // radius en mètres
-
-        const wasteReports = await WasteReport.find({
-            location: {
-                $near: {
-                    $geometry: {
-                        type: "Point",
-                        coordinates: [parseFloat(lng), parseFloat(lat)]
-                    },
-                    $maxDistance: parseInt(radius)
-                }
-            }
-        }).populate('userId', 'name');
-
-        // Audit pour consultation de la carte
-        await logManualAudit(
-            'WASTE_REPORTS_VIEW_MAP',
-            req.user,
-            `Consultation des signalements sur la carte`,
-            { 
-                latitude: lat,
-                longitude: lng,
-                radius: radius,
-                count: wasteReports.length 
-            }
-        );
-
-        res.json({
-            success: true,
-            data: wasteReports
-        });
-    } catch (error) {
-        console.error('❌ Erreur récupération carte:', error);
-        
-        // Audit pour erreur récupération carte
-        await logManualAudit(
-            'SYSTEM_ERROR',
-            req.user,
-            `Erreur lors de la récupération de la carte des signalements: ${error.message}`,
-            { error: error.message, endpoint: '/waste/map' }
-        );
-        
-        res.status(500).json({ 
-            success: false,
-            error: 'Erreur serveur' 
         });
     }
 };
