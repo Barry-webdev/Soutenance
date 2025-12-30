@@ -269,41 +269,29 @@ const ReportForm: React.FC = () => {
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Token d\'authentification manquant. Veuillez vous reconnecter.');
+        setIsSubmitting(false);
         return;
       }
 
-      // Préparer les données du formulaire
-      const formData = new FormData();
-      formData.append('description', description);
-      formData.append('wasteType', wasteType);
-      formData.append('location', JSON.stringify({
-        lat: location.latitude,
-        lng: location.longitude
-      }));
-
-      // Ajouter l'image si elle existe
-      if (photo) {
-        // Convertir l'URL en File si nécessaire
-        if (photo.startsWith('data:')) {
-          const response = await fetch(photo);
-          const blob = await response.blob();
-          const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
-          formData.append('image', file);
-        } else {
-          // Si c'est déjà un fichier
-          formData.append('image', photo);
+      // Préparer les données en JSON (pas FormData pour l'instant)
+      const reportData = {
+        description: description,
+        wasteType: wasteType,
+        location: {
+          lat: location.latitude,
+          lng: location.longitude
         }
-      }
+      };
 
-      console.log('🔍 Envoi du signalement avec image:', formData);
+      console.log('🔍 Envoi du signalement:', reportData);
 
       const response = await fetch('http://localhost:4000/api/waste', {
         method: 'POST',
         headers: { 
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-          // Ne pas définir Content-Type, laissez le navigateur le faire
         },
-        body: formData
+        body: JSON.stringify(reportData)
       });
 
       console.log('📥 Réponse du serveur:', response.status, response.statusText);
@@ -316,19 +304,23 @@ const ReportForm: React.FC = () => {
       }
 
       // Créer une notification après succès
-      await fetch("http://localhost:4000/api/notifications", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          title: "Signalement reçu",
-          message: "Votre signalement a été enregistré avec succès.",
-          type: "success"
-        })
-      });
+      try {
+        await fetch("http://localhost:4000/api/notifications", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            title: "Signalement reçu",
+            message: "Votre signalement a été enregistré avec succès.",
+            type: "success"
+          })
+        });
+      } catch (notifError) {
+        console.log('Erreur notification (non bloquante):', notifError);
+      }
 
       addNotification({
         userId: user.id,
@@ -343,10 +335,13 @@ const ReportForm: React.FC = () => {
       setLocation(null);
       setPhoto(null);
 
-      setTimeout(() => setSuccess(false), 5000);
-    } catch (err) {
-      console.error(err);
-      setError('Une erreur est survenue. Veuillez réessayer.');
+      // Redirection vers la carte après 2 secondes
+      setTimeout(() => {
+        window.location.href = '/map';
+      }, 2000);
+    } catch (err: any) {
+      console.error('❌ Erreur complète:', err);
+      setError(err.message || 'Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);
     }
@@ -356,7 +351,12 @@ const ReportForm: React.FC = () => {
     <div className="card max-w-2xl mx-auto">
       <h2 className="text-xl font-semibold mb-4">Signaler un déchet</h2>
 
-      {success && <p className="bg-green-100 border-green-500 text-green-700 p-4">Signalement envoyé avec succès!</p>}
+      {success && (
+        <div className="bg-green-100 border-green-500 text-green-700 p-4 rounded mb-4">
+          <p className="font-semibold">✅ Signalement envoyé avec succès!</p>
+          <p className="text-sm mt-1">Redirection vers la carte dans 2 secondes...</p>
+        </div>
+      )}
       {error && <p className="bg-red-100 border-red-500 text-red-700 p-4">{error}</p>}
 
       <form onSubmit={handleSubmit}>
@@ -401,13 +401,12 @@ const ReportForm: React.FC = () => {
         <div className="mt-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <Camera className="w-5 h-5" />
-            <span>Ajouter une photo</span>
+            <span>Ajouter une photo (optionnel)</span>
             <input
               type="file"
               accept="image/*"
               capture="environment"
               onChange={handlePhotoChange}
-              required
               hidden
             />
           </label>

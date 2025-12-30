@@ -4,15 +4,26 @@ import { useQuery } from "@tanstack/react-query";
 
 // Interfaces
 interface WasteReport {
-  id: string;
-  created_at: string;
+  _id: string;
+  createdAt: string;
+  updatedAt: string;
   description: string;
-  waste_type: string;
+  wasteType: string;
   status: 'pending' | 'collected' | 'not_collected';
-  latitude: number;
-  longitude: number;
-  address: string;
-  image_url: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  images?: {
+    original?: { url: string; filename: string };
+    thumbnail?: { url: string; filename: string };
+    medium?: { url: string; filename: string };
+  } | null;
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+  };
 }
 
 interface User {
@@ -84,7 +95,15 @@ const AdminPanel: React.FC = () => {
       if (!response.ok) throw new Error("Erreur lors de la mise à jour du statut");
 
       const updated = await response.json();
-      setSelectedReport(updated);
+      
+      // Mettre à jour le signalement sélectionné avec les nouvelles données
+      if (updated.success && updated.data) {
+        setSelectedReport(updated.data);
+        // Optionnel: rafraîchir la liste des signalements
+        window.location.reload(); // Solution simple, ou utiliser react-query invalidation
+      }
+      
+      alert("Statut mis à jour avec succès !");
     } catch (error) {
       console.error(error);
       alert("Échec de la mise à jour du statut !");
@@ -112,25 +131,61 @@ const AdminPanel: React.FC = () => {
                 <tr className="border-b">
                   <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Date</th>
                   <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">Description</th>
-                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">Localisation</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">Utilisateur</th>
                   <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Type</th>
                   <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Statut</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Image</th>
                   <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {reports.length === 0 ? (
-                  <tr><td colSpan={6}>Aucun signalement</td></tr>
+                  <tr><td colSpan={7} className="text-center py-4">Aucun signalement</td></tr>
                 ) : (
                   reports.map(report => (
-                    <tr key={report.id}>
-                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">{new Date(report.created_at).toLocaleDateString()}</td>
-                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">{report.description}</td>
-                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">{report.address}</td>
-                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">{report.waste_type}</td>
-                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">{report.status}</td>
+                    <tr key={report._id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
-                        <button onClick={() => setSelectedReport(report)} className="text-blue-600 hover:text-blue-800">Voir</button>
+                        {new Date(report.createdAt).toLocaleDateString('fr-FR')}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">
+                        {report.description.length > 50 ? `${report.description.substring(0, 50)}...` : report.description}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">
+                        {report.userId.name}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                          {report.wasteType}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          report.status === 'collected' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {report.status === 'pending' ? 'En attente' :
+                           report.status === 'collected' ? 'Collecté' : 'Non collecté'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        {report.images?.thumbnail?.url ? (
+                          <img 
+                            src={report.images.thumbnail.url} 
+                            alt="Aperçu" 
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        ) : (
+                          <span className="text-gray-400 text-xs">Pas d'image</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <button 
+                          onClick={() => setSelectedReport(report)} 
+                          className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                        >
+                          Voir
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -142,27 +197,112 @@ const AdminPanel: React.FC = () => {
           {/* Modale */}
           {selectedReport && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-screen overflow-y-auto p-4 sm:p-6">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto p-4 sm:p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-semibold">Détails du signalement</h3>
-                  <button onClick={() => setSelectedReport(null)}>X</button>
+                  <button 
+                    onClick={() => setSelectedReport(null)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                  >
+                    ×
+                  </button>
                 </div>
 
-                <p><strong>Description:</strong> {selectedReport.description}</p>
-                <p><strong>Type:</strong> {selectedReport.waste_type}</p>
-                <p><strong>Adresse:</strong> {selectedReport.address}</p>
-                <p><strong>Coordonnées:</strong> {selectedReport.latitude}, {selectedReport.longitude}</p>
-                <p><strong>Date:</strong> {new Date(selectedReport.created_at).toLocaleString()}</p>
-                <p><strong>Statut:</strong> {selectedReport.status}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Informations du signalement */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Informations générales</h4>
+                      <div className="space-y-2">
+                        <p><strong>Description:</strong> {selectedReport.description}</p>
+                        <p><strong>Type de déchet:</strong> 
+                          <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                            {selectedReport.wasteType}
+                          </span>
+                        </p>
+                        <p><strong>Statut:</strong> 
+                          <span className={`ml-2 px-2 py-1 rounded-full text-sm ${
+                            selectedReport.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            selectedReport.status === 'collected' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {selectedReport.status === 'pending' ? 'En attente' :
+                             selectedReport.status === 'collected' ? 'Collecté' : 'Non collecté'}
+                          </span>
+                        </p>
+                        <p><strong>Date de création:</strong> {new Date(selectedReport.createdAt).toLocaleString('fr-FR')}</p>
+                        <p><strong>Dernière mise à jour:</strong> {new Date(selectedReport.updatedAt).toLocaleString('fr-FR')}</p>
+                      </div>
+                    </div>
 
-                <div className="mt-4">
-                  <button onClick={() => updateReportStatus(selectedReport.id, 'pending')} className="mr-2">En attente</button>
-                  <button onClick={() => updateReportStatus(selectedReport.id, 'collected')} className="text-green-600 mr-2">Collecté</button>
-                  <button onClick={() => updateReportStatus(selectedReport.id, 'not_collected')} className="text-red-600 hover:underline">Non collecté</button>
-                </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Utilisateur</h4>
+                      <div className="space-y-2">
+                        <p><strong>Nom:</strong> {selectedReport.userId.name}</p>
+                        <p><strong>Email:</strong> {selectedReport.userId.email}</p>
+                      </div>
+                    </div>
 
-                <div className="mt-4">
-                  <img src={selectedReport.image_url} alt="Signalement" className="w-full h-64 object-cover rounded" />
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Localisation</h4>
+                      <div className="space-y-2">
+                        <p><strong>Latitude:</strong> {selectedReport.location.lat}</p>
+                        <p><strong>Longitude:</strong> {selectedReport.location.lng}</p>
+                        <p><strong>Coordonnées:</strong> {selectedReport.location.lat.toFixed(6)}, {selectedReport.location.lng.toFixed(6)}</p>
+                      </div>
+                    </div>
+
+                    {/* Actions de mise à jour du statut */}
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Actions</h4>
+                      <div className="flex flex-wrap gap-2">
+                        <button 
+                          onClick={() => updateReportStatus(selectedReport._id, 'pending')} 
+                          className="px-3 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
+                        >
+                          Marquer en attente
+                        </button>
+                        <button 
+                          onClick={() => updateReportStatus(selectedReport._id, 'collected')} 
+                          className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                        >
+                          Marquer collecté
+                        </button>
+                        <button 
+                          onClick={() => updateReportStatus(selectedReport._id, 'not_collected')} 
+                          className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                        >
+                          Marquer non collecté
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Image */}
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-2">Image du signalement</h4>
+                    {selectedReport.images?.original?.url ? (
+                      <div className="space-y-2">
+                        <img 
+                          src={selectedReport.images.original.url} 
+                          alt="Signalement" 
+                          className="w-full h-64 object-cover rounded-lg border"
+                        />
+                        <p className="text-sm text-gray-600">
+                          Fichier: {selectedReport.images.original.filename}
+                        </p>
+                        {selectedReport.images.original.size && (
+                          <p className="text-sm text-gray-600">
+                            Taille: {(selectedReport.images.original.size / 1024).toFixed(1)} KB
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-full h-64 bg-gray-100 rounded-lg border flex items-center justify-center">
+                        <p className="text-gray-500">Aucune image disponible</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

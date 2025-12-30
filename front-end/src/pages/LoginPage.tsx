@@ -68,30 +68,11 @@ const LoginPage: React.FC = () => {
     setSuccess(null);
 
     try {
-      const response = await fetch('http://localhost:4000/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || 'Identifiants invalides.');
-      } else {
-        setSuccess(data.message || 'Connexion réussie ! Redirection...');
-        if (data.token) {
-          // Stockage local
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
-
-          // 🔥 Mise à jour du contexte d'authentification
-          login(data.user, data.token);
-        }
-      }
-    } catch (err) {
-      setError('Erreur de connexion au serveur.');
+      // 🔥 Utiliser la fonction login du contexte
+      await login(email, password);
+      setSuccess('Connexion réussie ! Redirection...');
+    } catch (err: any) {
+      setError(err.message || 'Erreur de connexion au serveur.');
     }
   };
 

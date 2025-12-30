@@ -110,6 +110,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading: false,
         error: error.message || 'Erreur de connexion',
       }));
+      // Relancer l'erreur pour que le composant appelant puisse la gérer
+      throw error;
     }
   };
 

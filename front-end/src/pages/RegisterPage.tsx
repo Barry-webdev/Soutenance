@@ -9,6 +9,7 @@ const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -21,29 +22,21 @@ const RegisterPage: React.FC = () => {
       return;
     }
     
+    if (password.length < 6) {
+      setError('Le mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+    
     try {
-      // Call the backend API to register the user
-      const response = await fetch('http://localhost:4000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          nom: name, // Map 'name' to 'nom'
-          prenom: 'Default', // Default value for prenom
-          email,
-          password,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de l\'inscription.');
-      }
-
-      // If API call is successful, proceed with the existing register function
+      // Utiliser la fonction register du contexte d'authentification
       await register(email, password, name);
-      navigate('/');
+      
+      setSuccess('Inscription réussie ! Redirection en cours...');
+      
+      // Redirection automatique après inscription réussie
+      setTimeout(() => {
+        navigate('/report');
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'inscription. Veuillez réessayer.');
     }
@@ -57,6 +50,12 @@ const RegisterPage: React.FC = () => {
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
             <p>{error}</p>
+          </div>
+        )}
+        
+        {success && (
+          <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+            <p className="font-semibold">✅ {success}</p>
           </div>
         )}
         
