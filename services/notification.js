@@ -134,6 +134,26 @@ class NotificationService {
     }
 
     /**
+     * Notifier l'utilisateur de la suppression de son signalement
+     */
+    static async notifyUserWasteReportDeleted(userId, wasteReport) {
+        try {
+            const notification = await this.createNotification({
+                userId: userId,
+                title: '🗑️ Signalement Supprimé',
+                message: `Votre signalement "${wasteReport.description.substring(0, 50)}..." a été supprimé par un administrateur`,
+                type: 'waste_report_status_updated',
+                priority: 'medium',
+                actionUrl: '/my-reports'
+            });
+
+            console.log(`🗑️ Notification suppression envoyée à l'utilisateur ${userId}`);
+        } catch (error) {
+            console.error('❌ Erreur notification suppression signalement:', error);
+        }
+    }
+
+    /**
      * Émettre une notification via WebSocket (si configuré)
      */
     static emitNotification(notification) {

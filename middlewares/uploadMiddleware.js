@@ -30,13 +30,11 @@ const upload = multer({
 // Middleware pour upload d'image unique
 export const uploadSingleImage = upload.single('image');
 
-// Middleware pour valider l'upload
+// Middleware pour valider l'upload (optionnel)
 export const validateImageUpload = (req, res, next) => {
+    // Si aucune image n'est fournie, c'est OK
     if (!req.file) {
-        return res.status(400).json({
-            success: false,
-            error: 'Aucune image fournie'
-        });
+        return next();
     }
 
     // Vérifier la taille

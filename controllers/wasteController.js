@@ -350,3 +350,64 @@ export const deleteWasteReport = async (req, res) => {
         });
     }
 };
+
+/**
+ * Récupérer les signalements sur une carte (géolocalisation)
+ */
+export const getWasteReportsMap = async (req, res) => {
+    try {
+        const { lat, lng, radius = 10000 } = req.query; // radius en mètres
+
+        let query = {};
+        
+        // Si des coordonnées sont fournies, rechercher dans un rayon
+        if (lat && lng) {
+            query.location = {
+                $near: {
+                    $geometry: {
+                        type: "Point",
+                        coordinates: [parseFloat(lng), parseFloat(lat)]
+                    },
+                    $maxDistance: parseInt(radius)
+                }
+            };
+        }
+
+        const wasteReports = await WasteReport.find(query)
+            .populate('userId', 'name')
+            .sort({ createdAt: -1 });
+
+        // Audit pour consultation de la carte
+        await logManualAudit(
+            'WASTE_REPORTS_VIEW_MAP',
+            req.user,
+            `Consultation des signalements sur la carte`,
+            { 
+                latitude: lat,
+                longitude: lng,
+                radius: radius,
+                count: wasteReports.length 
+            }
+        );
+
+        res.json({
+            success: true,
+            data: wasteReports
+        });
+    } catch (error) {
+        console.error('❌ Erreur récupération carte:', error);
+        
+        // Audit pour erreur récupération carte
+        await logManualAudit(
+            'SYSTEM_ERROR',
+            req.user,
+            `Erreur lors de la récupération de la carte des signalements: ${error.message}`,
+            { error: error.message, endpoint: '/waste/map' }
+        );
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Erreur serveur' 
+        });
+    }
+};

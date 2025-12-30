@@ -75,12 +75,46 @@ export const validateWasteReport = (req, res, next) => {
     if (!wasteType) errors.push('Le type de déchet est obligatoire');
     if (!location) errors.push('La localisation est obligatoire');
     
-    if (location && (!location.lat || !location.lng)) {
-        errors.push('La localisation doit contenir latitude et longitude');
+    // Valider la localisation
+    if (location) {
+        let parsedLocation;
+        try {
+            // Si location est une chaîne, essayer de la parser
+            parsedLocation = typeof location === 'string' ? JSON.parse(location) : location;
+        } catch (e) {
+            errors.push('Format de localisation invalide');
+        }
+        
+        if (parsedLocation && (!parsedLocation.lat || !parsedLocation.lng)) {
+            errors.push('La localisation doit contenir latitude et longitude');
+        }
+        
+        // Valider les coordonnées
+        if (parsedLocation) {
+            const lat = parseFloat(parsedLocation.lat);
+            const lng = parseFloat(parsedLocation.lng);
+            
+            if (isNaN(lat) || lat < -90 || lat > 90) {
+                errors.push('Latitude invalide (doit être entre -90 et 90)');
+            }
+            
+            if (isNaN(lng) || lng < -180 || lng > 180) {
+                errors.push('Longitude invalide (doit être entre -180 et 180)');
+            }
+            
+            // Mettre à jour req.body avec la localisation parsée
+            req.body.location = { lat, lng };
+        }
     }
     
     if (description && description.length > 500) {
         errors.push('La description ne peut pas dépasser 500 caractères');
+    }
+    
+    // Valider le type de déchet
+    const validWasteTypes = ['plastique', 'verre', 'métal', 'organique', 'papier', 'dangereux', 'autre'];
+    if (wasteType && !validWasteTypes.includes(wasteType)) {
+        errors.push(`Type de déchet invalide. Types acceptés: ${validWasteTypes.join(', ')}`);
     }
     
     if (errors.length > 0) {
