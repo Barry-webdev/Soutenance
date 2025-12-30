@@ -104,8 +104,27 @@ body {
   overflow: hidden;
 }
 
-@media screen and (max-width: 640px) {
+/* Responsive map heights */
+@media screen and (max-width: 480px) {
+  .map-container {
+    height: 250px;
+  }
+}
+
+@media screen and (min-width: 481px) and (max-width: 640px) {
   .map-container {
     height: 300px;
+  }
+}
+
+@media screen and (min-width: 641px) and (max-width: 768px) {
+  .map-container {
+    height: 400px;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .map-container {
+    height: 500px;
   }
 }

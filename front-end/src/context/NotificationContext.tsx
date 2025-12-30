@@ -25,10 +25,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (!userId) return;
 
       try {
-        const response = await fetch(`http://localhost:4000/api/notifications/${userId}`);
+        const response = await fetch(`http://localhost:4000/api/notifications/${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         if (!response.ok) throw new Error('Erreur réseau');
 
-        const data: Notification[] = await response.json();
+        const responseData = await response.json();
+        const data: Notification[] = responseData.data || [];
 
         const formattedNotifications = data.map((notif) => ({
           ...notif,
@@ -53,13 +58,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const response = await fetch(`http://localhost:4000/api/notifications`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify(notification),
       });
 
       if (!response.ok) throw new Error("Erreur lors de l'ajout");
 
-      const savedNotification: Notification = await response.json();
+      const responseData = await response.json();
+      const savedNotification: Notification = responseData.data;
 
       setNotifications((prev) => [
         {
@@ -81,6 +90,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const response = await fetch(`http://localhost:4000/api/notifications/${userId}/markAllAsRead`, {
         method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
 
       if (!response.ok) throw new Error('Erreur lors de la mise à jour');

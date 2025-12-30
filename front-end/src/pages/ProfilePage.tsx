@@ -9,7 +9,11 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await fetch('http://localhost:4000/notifications');
+        const response = await fetch('http://localhost:4000/api/notifications', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         const data = await response.json();
         setNotifications(data);
       } catch (error) {

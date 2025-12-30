@@ -8,7 +8,7 @@ interface WasteReport {
   created_at: string;
   description: string;
   waste_type: string;
-  status: 'reported' | 'inProgress' | 'completed';
+  status: 'pending' | 'collected' | 'not_collected';
   latitude: number;
   longitude: number;
   address: string;
@@ -30,20 +30,30 @@ const AdminPanel: React.FC = () => {
 
   // Fetch Signalements
   const fetchReports = async (): Promise<WasteReport[]> => {
-    const response = await fetch("http://localhost:4000/api/waste_reports");
+    const response = await fetch("http://localhost:4000/api/waste", {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
     if (!response.ok) {
       throw new Error('Erreur lors de la récupération des signalements');
     }
-    return response.json();
+    const data = await response.json();
+    return data.data?.wasteReports || [];
   };
 
   // Fetch Utilisateurs
   const fetchUsers = async (): Promise<User[]> => {
-    const response = await fetch("http://localhost:4000/api/users");
+    const response = await fetch("http://localhost:4000/api/users", {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
     if (!response.ok) {
       throw new Error('Erreur lors de la récupération des utilisateurs');
     }
-    return response.json();
+    const data = await response.json();
+    return data.data || [];
   };
 
   // useQuery
@@ -62,9 +72,12 @@ const AdminPanel: React.FC = () => {
   // Fonction de mise à jour du statut
   const updateReportStatus = async (reportId: string, newStatus: WasteReport['status']) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/waste_reports/${reportId}/status`, {
+      const response = await fetch(`http://localhost:4000/api/waste/${reportId}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -97,12 +110,12 @@ const AdminPanel: React.FC = () => {
             <table className="min-w-full bg-white">
               <thead>
                 <tr className="border-b">
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Description</th>
-                  <th className="py-3 px-4">Localisation</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Statut</th>
-                  <th className="py-3 px-4">Actions</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Date</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">Description</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">Localisation</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Type</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Statut</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -111,13 +124,13 @@ const AdminPanel: React.FC = () => {
                 ) : (
                   reports.map(report => (
                     <tr key={report.id}>
-                      <td className="py-3 px-4">{new Date(report.created_at).toLocaleDateString()}</td>
-                      <td className="py-3 px-4">{report.description}</td>
-                      <td className="py-3 px-4">{report.address}</td>
-                      <td className="py-3 px-4">{report.waste_type}</td>
-                      <td className="py-3 px-4">{report.status}</td>
-                      <td className="py-3 px-4">
-                        <button onClick={() => setSelectedReport(report)} className="text-blue-600">Voir</button>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">{new Date(report.created_at).toLocaleDateString()}</td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">{report.description}</td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">{report.address}</td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">{report.waste_type}</td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">{report.status}</td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <button onClick={() => setSelectedReport(report)} className="text-blue-600 hover:text-blue-800">Voir</button>
                       </td>
                     </tr>
                   ))
@@ -128,8 +141,8 @@ const AdminPanel: React.FC = () => {
 
           {/* Modale */}
           {selectedReport && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-screen overflow-y-auto p-6">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-screen overflow-y-auto p-4 sm:p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-semibold">Détails du signalement</h3>
                   <button onClick={() => setSelectedReport(null)}>X</button>
@@ -143,9 +156,9 @@ const AdminPanel: React.FC = () => {
                 <p><strong>Statut:</strong> {selectedReport.status}</p>
 
                 <div className="mt-4">
-                  <button onClick={() => updateReportStatus(selectedReport.id, 'reported')} className="mr-2">Signalé</button>
-                  <button onClick={() => updateReportStatus(selectedReport.id, 'inProgress')} className="text-orange-500 mr-2">En cours</button>
-                  <button onClick={() => updateReportStatus(selectedReport.id, 'completed')} className="text-green-600 hover:underline">Résolu</button>
+                  <button onClick={() => updateReportStatus(selectedReport.id, 'pending')} className="mr-2">En attente</button>
+                  <button onClick={() => updateReportStatus(selectedReport.id, 'collected')} className="text-green-600 mr-2">Collecté</button>
+                  <button onClick={() => updateReportStatus(selectedReport.id, 'not_collected')} className="text-red-600 hover:underline">Non collecté</button>
                 </div>
 
                 <div className="mt-4">

@@ -23,7 +23,7 @@ const RegisterPage: React.FC = () => {
     
     try {
       // Call the backend API to register the user
-      const response = await fetch('http://localhost:4000/api/register', {
+      const response = await fetch('http://localhost:4000/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -85,9 +85,13 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/dashboard-stats');
+        const response = await fetch('http://localhost:4000/api/stats/dashboard', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         const data = await response.json();
-        setStats(data);
+        setStats(data.data);
       } catch (error) {
         console.error("❌ Erreur de chargement des statistiques :", error);
       }

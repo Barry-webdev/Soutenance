@@ -1,5 +1,6 @@
 import React from 'react';
 import ReportForm from '../components/reports/ReportForm';
+import TestSignalement from '../components/debug/TestSignalement';
 
 const ReportPage: React.FC = () => {
   return (
@@ -13,6 +14,11 @@ const ReportPage: React.FC = () => {
       </div>
       
       <ReportForm />
+      
+      {/* Composant de test pour le diagnostic */}
+      <div className="mt-8">
+        <TestSignalement />
+      </div>
     </div>
   );
 };

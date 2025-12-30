@@ -81,21 +81,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthState(prevState => ({ ...prevState, isLoading: true, error: null }));
 
     try {
-      let user: User;
+      const response = await fetch('http://localhost:4000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (email === 'babdoulrazzai@gmail.com' && password === 'kathioure') {
-        user = MOCK_ADMIN_USER;
-      } else {
-        user = {
-          id: `user-${Date.now()}`,
-          email,
-          name: email.split('@')[0],
-          role: 'citizen',
-          points: 0,
-          createdAt: new Date().toISOString(),
-        };
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Identifiants invalides');
       }
 
+      const { token, user } = data.data;
+      
+      localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
       setAuthState({
@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthState(prevState => ({
         ...prevState,
         isLoading: false,
-        error: 'Invalid email or password',
+        error: error.message || 'Erreur de connexion',
       }));
     }
   };
@@ -117,19 +117,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthState(prevState => ({ ...prevState, isLoading: true, error: null }));
 
     try {
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        email,
-        name,
-        role: 'citizen',
-        points: 0,
-        createdAt: new Date().toISOString(),
-      };
+      const response = await fetch('http://localhost:4000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name, role: 'citizen' }),
+      });
 
-      localStorage.setItem('user', JSON.stringify(newUser));
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'inscription');
+      }
+
+      const { token, user } = data.data;
+      
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
 
       setAuthState({
-        user: newUser,
+        user,
         isAuthenticated: true,
         isLoading: false,
         error: null,
@@ -138,13 +144,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthState(prevState => ({
         ...prevState,
         isLoading: false,
-        error: 'Registration failed',
+        error: error.message || 'Erreur lors de l\'inscription',
       }));
     }
   };
 
   const logout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setAuthState({
       user: null,
       isAuthenticated: false,

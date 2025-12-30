@@ -2,24 +2,23 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'citizen' | 'collector' | 'authority' | 'admin';
+  role: 'citizen' | 'admin' | 'partner';
   points: number;
+  isActive: boolean;
   createdAt: string;
 }
 
 export interface WasteReport {
   id: string;
   userId: string;
-  userName: string;
   description: string;
-  imageUrl: string;
+  imageUrl?: string;
   location: {
-    latitude: number;
-    longitude: number;
-    address: string;
+    lat: number;
+    lng: number;
   };
-  status: 'reported' | 'inProgress' | 'completed';
-  wasteType: 'general' | 'recyclable' | 'organic' | 'hazardous' | 'other';
+  status: 'pending' | 'collected' | 'not_collected';
+  wasteType: 'plastique' | 'verre' | 'métal' | 'organique' | 'papier' | 'dangereux' | 'autre';
   createdAt: string;
   updatedAt: string;
 }

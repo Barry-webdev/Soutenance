@@ -23,7 +23,11 @@ const StatsOverview: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/statistics');
+        const response = await fetch('http://localhost:4000/api/stats', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         const data: StatsData = await response.json();
         setStats(data);
         setLoading(false);

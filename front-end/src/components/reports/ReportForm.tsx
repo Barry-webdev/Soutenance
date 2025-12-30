@@ -206,7 +206,7 @@ const ReportForm: React.FC = () => {
   const { addNotification } = useNotifications();
 
   const [description, setDescription] = useState('');
-  const [wasteType, setWasteType] = useState('general');
+  const [wasteType, setWasteType] = useState('plastique');
   const [location, setLocation] = useState<{ latitude: number; longitude: number; address: string } | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -257,8 +257,8 @@ const ReportForm: React.FC = () => {
       return;
     }
 
-    if (!description || !location || !photo) {
-      setError('Tous les champs sont obligatoires.');
+    if (!description || !location) {
+      setError('La description et la localisation sont obligatoires.');
       return;
     }
 
@@ -266,30 +266,67 @@ const ReportForm: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:4000/api/waste_reports', {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Token d\'authentification manquant. Veuillez vous reconnecter.');
+        return;
+      }
+
+      // Préparer les données du formulaire
+      const formData = new FormData();
+      formData.append('description', description);
+      formData.append('wasteType', wasteType);
+      formData.append('location', JSON.stringify({
+        lat: location.latitude,
+        lng: location.longitude
+      }));
+
+      // Ajouter l'image si elle existe
+      if (photo) {
+        // Convertir l'URL en File si nécessaire
+        if (photo.startsWith('data:')) {
+          const response = await fetch(photo);
+          const blob = await response.blob();
+          const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+          formData.append('image', file);
+        } else {
+          // Si c'est déjà un fichier
+          formData.append('image', photo);
+        }
+      }
+
+      console.log('🔍 Envoi du signalement avec image:', formData);
+
+      const response = await fetch('http://localhost:4000/api/waste', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          description,
-          wasteType,
-          imageUrl: photo,
-          address: location.address,
-          latitude: location.latitude,
-          longitude: location.longitude,
-          status: 'en_attente'
-        })
+        headers: { 
+          'Authorization': `Bearer ${token}`
+          // Ne pas définir Content-Type, laissez le navigateur le faire
+        },
+        body: formData
       });
 
-      if (!response.ok) throw new Error("Erreur lors de l'enregistrement.");
+      console.log('📥 Réponse du serveur:', response.status, response.statusText);
 
+      const responseData = await response.json();
+      console.log('📥 Données de la réponse:', responseData);
+      
+      if (!response.ok) {
+        throw new Error(responseData.error || responseData.message || "Erreur lors de l'enregistrement.");
+      }
+
+      // Créer une notification après succès
       await fetch("http://localhost:4000/api/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           userId: user.id,
           title: "Signalement reçu",
-          message: "Votre signalement a été enregistré avec succès."
+          message: "Votre signalement a été enregistré avec succès.",
+          type: "success"
         })
       });
 
@@ -302,7 +339,7 @@ const ReportForm: React.FC = () => {
 
       setSuccess(true);
       setDescription('');
-      setWasteType('general');
+      setWasteType('plastique');
       setLocation(null);
       setPhoto(null);
 
@@ -339,10 +376,13 @@ const ReportForm: React.FC = () => {
           className="form-input"
           required
         >
-          <option value="general">Général</option>
-          <option value="recyclable">Recyclable</option>
-          <option value="organic">Organique</option>
-          <option value="hazardous">Dangereux</option>
+          <option value="plastique">Plastique</option>
+          <option value="verre">Verre</option>
+          <option value="métal">Métal</option>
+          <option value="organique">Organique</option>
+          <option value="papier">Papier</option>
+          <option value="dangereux">Dangereux</option>
+          <option value="autre">Autre</option>
         </select>
 
         <button type="button" onClick={getCurrentLocation} className="btn-primary flex items-center gap-2">

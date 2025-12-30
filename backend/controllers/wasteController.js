@@ -2,18 +2,32 @@
 import WasteReport from '../models/wasteReportModel.js';
 import User from '../models/userModel.js';
 import { logManualAudit } from '../middlewares/auditMiddleware.js';
+import ImageService from '../services/imageService.js';
 
 /**
  * Créer un signalement de déchet
  */
 export const createWasteReport = async (req, res) => {
     try {
-        const { description, imageUrl, location, wasteType } = req.body;
+        const { description, location, wasteType } = req.body;
+        let images = null;
+
+        // Traiter l'image si elle existe
+        if (req.file) {
+            try {
+                images = await ImageService.processImage(req.file.buffer, req.file.originalname);
+            } catch (imageError) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Erreur lors du traitement de l'image: ${imageError.message}`
+                });
+            }
+        }
 
         const wasteReport = await WasteReport.create({
             userId: req.user._id,
             description,
-            imageUrl,
+            images,
             location,
             wasteType
         });
@@ -255,6 +269,58 @@ export const updateWasteReportStatus = async (req, res) => {
         res.status(500).json({ 
             success: false,
             error: 'Erreur serveur' 
+        });
+    }
+};
+
+/**
+ * Supprimer un signalement de déchet
+ */
+export const deleteWasteReport = async (req, res) => {
+    try {
+        const wasteReport = await WasteReport.findById(req.params.id);
+        
+        if (!wasteReport) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Signalement non trouvé' 
+            });
+        }
+
+        // Supprimer les images associées
+        if (wasteReport.images) {
+            await ImageService.deleteImages(wasteReport.images);
+        }
+
+        // Supprimer le signalement
+        await WasteReport.findByIdAndDelete(req.params.id);
+
+        // Audit pour suppression
+        await logManualAudit(
+            'WASTE_REPORT_DELETE',
+            req.user,
+            `Signalement supprimé: ${wasteReport.description?.substring(0, 50)}...`,
+            { 
+                reportId: wasteReport._id,
+                userId: wasteReport.userId 
+            }
+        );
+
+        res.json({
+            success: true,
+            message: 'Signalement supprimé avec succès'
+        });
+    } catch (error) {
+        console.error('❌ Erreur suppression signalement:', error);
+        await logManualAudit(
+            'SYSTEM_ERROR',
+            req.user,
+            `Erreur lors de la suppression: ${error.message}`,
+            { error: error.message, reportId: req.params.id }
+        );
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur serveur lors de la suppression' 
         });
     }
 };

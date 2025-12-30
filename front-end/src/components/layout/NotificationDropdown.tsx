@@ -15,8 +15,13 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await fetch(`http://localhost:4000/notifications/${userId}`);
-        const data = await response.json();
+        const response = await fetch(`http://localhost:4000/api/notifications/${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const responseData = await response.json();
+        const data = responseData.data || [];
 
         // ✅ Ajout d'un formatage sûr de la date
         const formattedNotifications = data.map((notif: any) => ({
@@ -41,7 +46,12 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
   // 🔥 Marquer une notification comme lue
   const handleNotificationClick = async (id: string) => {
     try {
-      await fetch(`http://localhost:4000/notifications/${id}/read`, { method: 'PUT' });
+      await fetch(`http://localhost:4000/api/notifications/${id}/read`, { 
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
 
       setNotifications(prev =>
         prev.map(notif => notif.id === id ? { ...notif, read: true } : notif)

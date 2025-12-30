@@ -16,12 +16,16 @@ const MapView: React.FC = () => {
     const fetchReports = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://localhost:5000/waste_reports');
+        const response = await fetch('http://localhost:4000/api/waste/map?lat=11.0591&lng=-12.3953&radius=10000', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         if (!response.ok) {
           throw new Error('Erreur de récupération des signalements.');
         }
         const data = await response.json();
-        setReports(data);
+        setReports(data.data || []);
       } catch (error: any) {
         console.error("❌ Erreur :", error.message);
       } finally {
