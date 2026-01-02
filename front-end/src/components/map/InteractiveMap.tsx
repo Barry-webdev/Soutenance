@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import { buildApiUrl, buildImageUrl } from '../../config/api';
 import { 
   MapPin, 
   Navigation, 
@@ -144,7 +145,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const fetchReports = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/waste/map', {
+      const response = await fetch(buildApiUrl('/api/waste/map'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -404,7 +405,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
                 
                 {report.images?.thumbnail && (
                   <img
-                    src={`http://localhost:4000${report.images.thumbnail.url}`}
+                    src={buildImageUrl(report.images.thumbnail.url)}
                     alt="Déchet signalé"
                     className="w-full h-32 object-cover rounded mb-2"
                   />
@@ -454,7 +455,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({
             <div className="p-4 space-y-4">
               {selectedReport.images?.medium && (
                 <img
-                  src={`http://localhost:4000${selectedReport.images.medium.url}`}
+                  src={buildImageUrl(selectedReport.images.medium.url)}
                   alt="Déchet signalé"
                   className="w-full h-48 object-cover rounded"
                 />

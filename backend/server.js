@@ -20,39 +20,52 @@ connectDB();
 // Middlewares de sécurité
 app.use(helmet());
 
-// Configuration CORS dynamique pour la production
-const allowedOrigins = [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:5173',
-    'http://localhost:5174',
-    // URLs de production Vercel
-    'https://ecopulse-app.vercel.app',
-    'https://soutenance-barry-webdevs-projects.vercel.app',
-    // Permettre tous les sous-domaines Vercel pour ce projet
-    /https:\/\/.*\.vercel\.app$/
-];
-
+// Configuration CORS permissive pour la production
 app.use(cors({
     origin: function (origin, callback) {
         // Permettre les requêtes sans origin (mobile apps, etc.)
         if (!origin) return callback(null, true);
         
-        // Vérifier les URLs exactes
-        if (allowedOrigins.includes(origin)) {
+        // Permettre localhost pour le développement
+        if (origin.includes('localhost')) {
             return callback(null, true);
         }
         
-        // Vérifier les regex patterns (pour les sous-domaines Vercel)
-        for (const allowedOrigin of allowedOrigins) {
-            if (allowedOrigin instanceof RegExp && allowedOrigin.test(origin)) {
+        // Permettre tous les domaines Vercel
+        if (origin.includes('vercel.app')) {
+            return callback(null, true);
+        }
+        
+        // Permettre les domaines de production connus
+        const allowedDomains = [
+            'ecopulse-app.vercel.app',
+            'ecopulse-app-web.vercel.app',
+            'soutenance-barry-webdevs-projects.vercel.app'
+        ];
+        
+        for (const domain of allowedDomains) {
+            if (origin.includes(domain)) {
                 return callback(null, true);
             }
         }
         
-        callback(new Error('Non autorisé par CORS'));
+        // En cas de doute, permettre (pour éviter les blocages)
+        console.log('⚠️ Origin non reconnu mais autorisé:', origin);
+        callback(null, true);
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+// Middleware pour gérer les requêtes OPTIONS (preflight)
+app.options('*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200);
+});
 
 // Limitation de taux
 const limiter = rateLimit({

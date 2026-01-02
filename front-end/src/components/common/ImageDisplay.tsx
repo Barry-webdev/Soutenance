@@ -1,4 +1,5 @@
 import React from 'react';
+import { buildImageUrl } from '../../config/api';
 
 interface ImageData {
   url: string;
@@ -65,9 +66,7 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({
   }
 
   // Construire l'URL complète
-  const fullImageUrl = imageUrl.startsWith('http') 
-    ? imageUrl 
-    : `http://localhost:4000${imageUrl}`;
+  const fullImageUrl = buildImageUrl(imageUrl);
 
   return (
     <div className={`relative overflow-hidden rounded-lg ${className}`}>
