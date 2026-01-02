@@ -76,6 +76,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, MapPin, BarChart2, Award, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { buildApiUrl } from '../config/api';
+import prefectureImage from '../assets/images/prefecture.jpg';
 import MapView from '../components/map/MapView';
 import WelcomeMessage from '../components/common/WelcomeMessage';
 
@@ -86,7 +88,7 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/stats/dashboard', {
+        const response = await fetch(buildApiUrl('/api/stats/dashboard'), {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -156,7 +158,7 @@ const HomePage: React.FC = () => {
 
           <div className="bg-gray-200 rounded-lg overflow-hidden h-72 md:h-96">
             <img
-              src="src/assets/images/prefecture.jpg"
+              src={prefectureImage}
               alt="Illustration Waste Management"
               className="w-full h-full object-cover"
             />

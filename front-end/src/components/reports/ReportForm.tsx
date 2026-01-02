@@ -200,6 +200,8 @@ import React, { useState } from 'react';
 import { Camera, MapPin, X, Upload } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import { getLocationWithFallback, GeolocationError } from '../../utils/geolocation';
+import { buildApiUrl } from '../../config/api';
 
 interface ReportFormProps {
   onSuccess?: () => void;
@@ -254,47 +256,25 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     if (fileInput) fileInput.value = '';
   };
 
-  const getCurrentLocation = () => {
+  const getCurrentLocation = async () => {
     setLocationLoading(true);
     setError(null);
 
-    if (!navigator.geolocation) {
-      setError('La géolocalisation n\'est pas supportée par votre navigateur');
+    try {
+      const locationData = await getLocationWithFallback();
+      setLocation(locationData);
       setLocationLoading(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          address: 'Localisation actuelle'
-        });
-        setLocationLoading(false);
-      },
-      (error) => {
-        let errorMessage = 'Erreur lors de la détection de votre position';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Veuillez autoriser l\'accès à votre position';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Position non disponible';
-            break;
-          case error.TIMEOUT:
-            errorMessage = 'Délai d\'attente dépassé pour la géolocalisation';
-            break;
-        }
-        setError(errorMessage);
-        setLocationLoading(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minutes
+    } catch (error: any) {
+      const geoError = error as GeolocationError;
+      
+      if (geoError.isHttpsRequired) {
+        setError(`${geoError.message}. Votre site doit être en HTTPS pour utiliser la géolocalisation précise sur mobile.`);
+      } else {
+        setError(geoError.message);
       }
-    );
+      
+      setLocationLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -334,7 +314,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
 
       console.log('🔍 Envoi du signalement avec image...');
 
-      const response = await fetch('http://localhost:4000/api/waste', {
+      const response = await fetch(buildApiUrl('/api/waste'), {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`
@@ -354,7 +334,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
 
       // Créer une notification après succès
       try {
-        await fetch("http://localhost:4000/api/notifications", {
+        await fetch(buildApiUrl('/api/notifications'), {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
