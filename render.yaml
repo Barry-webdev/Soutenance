@@ -3,7 +3,8 @@ services:
     name: ecopulse-backend
     env: node
     plan: free
-    buildCommand: npm run build
+    region: oregon
+    buildCommand: npm install --production
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -16,3 +17,7 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+    disk:
+      name: ecopulse-data
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1

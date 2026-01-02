@@ -5,10 +5,11 @@
   "description": "Backend pour l'application de gestion des déchets - Préfecture de Pita, Guinée",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node start.js",
+    "start:direct": "node server.js",
     "start:health": "node health.js",
     "dev": "nodemon server.js",
-    "build": "npm install --production",
+    "build": "npm install --production --no-optional",
     "test": "jest",
     "test:watch": "jest --watch"
   },
@@ -34,8 +35,8 @@
     "supertest": "^6.3.3"
   },
   "engines": {
-    "node": ">=18.x",
-    "npm": ">=9.x"
+    "node": ">=20.x",
+    "npm": ">=10.x"
   },
   "keywords": [
     "waste-management",
