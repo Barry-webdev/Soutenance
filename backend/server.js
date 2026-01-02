@@ -25,9 +25,11 @@ const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'http://localhost:5173',
     'http://localhost:5174',
-    // Ajoutez ici vos domaines de production
-    // 'https://votre-app.vercel.app',
-    // 'https://votre-domaine.com'
+    // URLs de production Vercel
+    'https://ecopulse-app.vercel.app',
+    'https://soutenance-barry-webdevs-projects.vercel.app',
+    // Permettre tous les sous-domaines Vercel pour ce projet
+    /https:\/\/.*\.vercel\.app$/
 ];
 
 app.use(cors({
@@ -35,11 +37,19 @@ app.use(cors({
         // Permettre les requêtes sans origin (mobile apps, etc.)
         if (!origin) return callback(null, true);
         
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Non autorisé par CORS'));
+        // Vérifier les URLs exactes
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
         }
+        
+        // Vérifier les regex patterns (pour les sous-domaines Vercel)
+        for (const allowedOrigin of allowedOrigins) {
+            if (allowedOrigin instanceof RegExp && allowedOrigin.test(origin)) {
+                return callback(null, true);
+            }
+        }
+        
+        callback(new Error('Non autorisé par CORS'));
     },
     credentials: true
 }));

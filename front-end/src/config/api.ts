@@ -30,4 +30,5 @@ export const buildImageUrl = (imagePath: string): string => {
   return `${API_CONFIG.BASE_URL}${imagePath}`;
 };
 
+// Export de la configuration pour usage direct
 export default API_CONFIG;

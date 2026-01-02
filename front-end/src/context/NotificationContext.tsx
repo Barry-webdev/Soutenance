@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Notification } from '../types';
 import { formatDistanceToNow } from '../utils/dateUtils';
+import { buildApiUrl } from '../config/api';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -70,7 +71,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const addNotification = async (notification: Omit<Notification, 'id' | 'createdAt'>) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/notifications`, {
+      const response = await fetch(buildApiUrl('/api/notifications'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -102,7 +103,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!userId) return;
 
     try {
-      const response = await fetch(`http://localhost:4000/api/notifications/${userId}/markAllAsRead`, {
+      const response = await fetch(buildApiUrl(`/api/notifications/${userId}/markAllAsRead`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
