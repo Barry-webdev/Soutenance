@@ -20,6 +20,19 @@ connectDB();
 // Middlewares de sécurité
 app.use(helmet());
 
+// Configuration CORS ultra-permissive TEMPORAIRE pour déblocage immédiat
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 // Configuration CORS permissive pour la production
 app.use(cors({
     origin: function (origin, callback) {
