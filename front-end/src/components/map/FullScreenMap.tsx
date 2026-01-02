@@ -450,9 +450,9 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
                   {report.description}
                 </p>
                 
-                {report.images?.thumbnailUrl && (
+                {report.images?.thumbnail && (
                   <img
-                    src={report.images.thumbnailUrl}
+                    src={buildImageUrl(report.images.thumbnail.url)}
                     alt="Signalement"
                     className="w-full h-32 object-cover rounded mb-2"
                   />

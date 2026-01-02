@@ -17,7 +17,9 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import SearchPage from './pages/SearchPage';
 import HelpPage from './pages/HelpPage';
 import MyReportsPage from './pages/MyReportsPage';
+import CollaborationPage from './pages/CollaborationPage';
 import NotFoundPage from './pages/NotFundPage';
+import ImageTestPage from './pages/ImageTestPage';
 import CollaborationPage from "./pages/CollaborationPage";
 import './App.css';
 import {QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -74,6 +76,7 @@ function App() {
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/help" element={<HelpPage />} />
                 <Route path="/collaboration" element={<CollaborationPage />} />
+                <Route path="/image-test" element={<ImageTestPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </div>
