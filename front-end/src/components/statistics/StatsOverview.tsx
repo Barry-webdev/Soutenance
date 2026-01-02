@@ -8,6 +8,7 @@ import html2pdf from 'html2pdf.js';
 
 interface StatsData {
   success: boolean;
+  error?: string;
   data: {
     summary?: {
       totalReports: number;
@@ -50,7 +51,12 @@ const StatsOverview: React.FC = () => {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem('token');
-        const userRole = localStorage.getItem('userRole');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userRole = user.role || 'citizen';
+        
+        if (!token) {
+          throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
+        }
         
         // Déterminer l'endpoint selon le rôle
         const endpoint = userRole === 'admin' ? '/api/stats' : '/api/stats/public';
@@ -62,11 +68,26 @@ const StatsOverview: React.FC = () => {
           }
         });
         
+        if (response.status === 401) {
+          // Token expiré ou invalide
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          throw new Error('Session expirée. Veuillez vous reconnecter.');
+        }
+        
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          console.error('Erreur API stats:', response.status, errorText);
+          throw new Error(`Erreur ${response.status}: ${response.statusText}`);
         }
         
         const data: StatsData = await response.json();
+        console.log('Statistiques reçues:', data);
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Erreur inconnue');
+        }
+        
         setStats(data);
         
         // Définir le mode d'affichage selon les données disponibles
@@ -79,6 +100,11 @@ const StatsOverview: React.FC = () => {
         setLoading(false);
       } catch (error) {
         console.error("❌ Erreur de récupération des statistiques :", error);
+        setStats({ 
+          success: false, 
+          data: {}, 
+          error: error.message 
+        } as any);
         setLoading(false);
       }
     };
@@ -154,10 +180,44 @@ const StatsOverview: React.FC = () => {
   }
 
   if (!displayData) {
+    const isAuthError = stats?.error && (
+      stats.error.includes('Session expirée') || 
+      stats.error.includes('authentification manquant')
+    );
+    
     return (
-      <div className="text-center text-red-600 p-8">
-        <AlertCircle className="w-12 h-12 mx-auto mb-4" />
-        <p>Erreur lors du chargement des statistiques</p>
+      <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-600" />
+        <h3 className="text-red-800 font-semibold mb-2">
+          {isAuthError ? 'Problème d\'authentification' : 'Erreur de chargement'}
+        </h3>
+        <p className="text-red-700 mb-4">
+          {stats?.error || 'Erreur lors du chargement des statistiques'}
+        </p>
+        
+        {isAuthError ? (
+          <div className="flex justify-center gap-2">
+            <button 
+              onClick={() => window.location.href = '/login'} 
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Se reconnecter
+            </button>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Réessayer
+          </button>
+        )}
       </div>
     );
   }
