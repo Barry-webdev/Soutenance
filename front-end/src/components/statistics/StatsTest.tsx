@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { buildApiUrl } from '../../config/api';
 
 const StatsTest: React.FC = () => {
   const [result, setResult] = useState<string>('');
@@ -7,7 +8,7 @@ const StatsTest: React.FC = () => {
   const testLogin = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:4000/api/auth/login', {
+      const response = await fetch(buildApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -35,7 +36,7 @@ const StatsTest: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/stats/public', {
+      const response = await fetch(buildApiUrl('/api/stats/public'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -54,7 +55,7 @@ const StatsTest: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/stats', {
+      const response = await fetch(buildApiUrl('/api/stats'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -73,7 +74,7 @@ const StatsTest: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/stats/dashboard', {
+      const response = await fetch(buildApiUrl('/api/stats/dashboard'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
