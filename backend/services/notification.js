@@ -1,5 +1,7 @@
 import Notification from '../models/notificationModel.js';
 import User from '../models/userModel.js';
+import EmailService from './emailService.js';
+import webSocketService from './websocketService.js';
 
 class NotificationService {
     
@@ -22,12 +24,35 @@ class NotificationService {
     }
 
     /**
+     * Émettre une notification via WebSocket
+     */
+    static emitNotification(notification) {
+        try {
+            if (webSocketService && webSocketService.sendNotificationToUser) {
+                webSocketService.sendNotificationToUser(notification.userId, {
+                    id: notification._id,
+                    userId: notification.userId,
+                    title: notification.title,
+                    message: notification.message,
+                    type: notification.type || 'info',
+                    read: notification.read || false,
+                    createdAt: notification.createdAt
+                });
+            }
+        } catch (error) {
+            console.error('❌ Erreur émission WebSocket:', error);
+        }
+    }
+
+    /**
      * Notifier les admins d'un nouveau signalement
      */
     static async notifyAdminsNewWasteReport(wasteReport) {
         try {
             const admins = await User.find({ role: 'admin' }).select('_id name email');
+            const user = await User.findById(wasteReport.userId).select('name email');
             
+            // Créer les notifications in-app
             const notifications = admins.map(admin => ({
                 userId: admin._id,
                 title: '🚨 Nouveau Signalement de Déchet',
@@ -44,6 +69,24 @@ class NotificationService {
             await Promise.all(
                 notifications.map(notification => this.createNotification(notification))
             );
+
+            // Notification WebSocket spéciale pour les admins
+            if (webSocketService && webSocketService.sendNotificationToAdmins) {
+                webSocketService.sendNotificationToAdmins({
+                    type: 'new_waste_report',
+                    title: '🚨 Nouveau Signalement',
+                    message: `Signalement de ${wasteReport.wasteType} par ${user?.name}`,
+                    data: wasteReport
+                });
+            }
+
+            // Envoyer les emails aux admins
+            try {
+                await EmailService.notifyAdminsNewReport(wasteReport, user);
+                console.log('📧 Emails de notification envoyés aux admins');
+            } catch (emailError) {
+                console.log('⚠️ Erreur envoi email (non bloquante):', emailError.message);
+            }
 
             console.log(`📢 Notifications signalement envoyées à ${admins.length} admins`);
         } catch (error) {
@@ -62,8 +105,9 @@ class NotificationService {
                 'not_collected': '❌ non collecté'
             };
 
+            // Notification in-app
             const notification = await this.createNotification({
-                userId: wasteReport.userId,
+                userId: wasteReport.userId._id || wasteReport.userId,
                 title: '📋 Statut de Votre Signalement Mis à Jour',
                 message: `Votre signalement a été marqué comme "${statusMessages[newStatus]}"`,
                 type: 'waste_report_status_updated',
@@ -75,7 +119,20 @@ class NotificationService {
                 actionUrl: `/my-reports/${wasteReport._id}`
             });
 
-            console.log(`✅ Notification statut envoyée à l'utilisateur ${wasteReport.userId}`);
+            // Email de notification
+            try {
+                const user = wasteReport.userId.name ? wasteReport.userId : 
+                             await User.findById(wasteReport.userId).select('name email');
+                
+                if (user && user.email) {
+                    await EmailService.notifyUserStatusChange(wasteReport, user, oldStatus, newStatus);
+                    console.log('📧 Email de changement de statut envoyé');
+                }
+            } catch (emailError) {
+                console.log('⚠️ Erreur envoi email statut (non bloquante):', emailError.message);
+            }
+
+            console.log(`✅ Notification statut envoyée à l'utilisateur ${wasteReport.userId._id || wasteReport.userId}`);
         } catch (error) {
             console.error('❌ Erreur notification statut signalement:', error);
         }
@@ -150,6 +207,35 @@ class NotificationService {
             console.log(`🗑️ Notification suppression envoyée à l'utilisateur ${userId}`);
         } catch (error) {
             console.error('❌ Erreur notification suppression signalement:', error);
+        }
+    }
+
+    /**
+     * Envoyer un email de bienvenue aux nouveaux utilisateurs
+     */
+    static async sendWelcomeNotification(user) {
+        try {
+            // Notification in-app
+            await this.createNotification({
+                userId: user._id,
+                title: '🌱 Bienvenue sur EcoApp Pita !',
+                message: `Bonjour ${user.name} ! Commencez à signaler des déchets et gagnez des points.`,
+                type: 'welcome',
+                priority: 'low',
+                actionUrl: '/report'
+            });
+
+            // Email de bienvenue
+            try {
+                await EmailService.sendWelcomeEmail(user);
+                console.log('📧 Email de bienvenue envoyé');
+            } catch (emailError) {
+                console.log('⚠️ Erreur envoi email bienvenue (non bloquante):', emailError.message);
+            }
+
+            console.log(`👋 Notification de bienvenue envoyée à ${user.name}`);
+        } catch (error) {
+            console.error('❌ Erreur notification bienvenue:', error);
         }
     }
 
@@ -263,6 +349,18 @@ class NotificationService {
         } catch (error) {
             console.error('❌ Erreur nettoyage notifications:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Envoyer le rapport hebdomadaire aux admins
+     */
+    static async sendWeeklyReport() {
+        try {
+            await EmailService.sendWeeklyReport();
+            console.log('📊 Rapport hebdomadaire envoyé');
+        } catch (error) {
+            console.error('❌ Erreur envoi rapport hebdomadaire:', error);
         }
     }
 }

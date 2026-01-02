@@ -7,29 +7,75 @@ import { Trash2, CheckCircle, Clock, AlertCircle, Percent, FileText } from 'luci
 import html2pdf from 'html2pdf.js';
 
 interface StatsData {
-  totalReports: number;
-  completed: number;
-  pending: number;
-  criticalAreas: number;
-  wasteTypeData: { name: string; count: number }[];
-  reportsByNeighborhood: { name: string; reports: number }[];
+  success: boolean;
+  data: {
+    summary?: {
+      totalReports: number;
+      collectedReports: number;
+      totalCitizens: number;
+      activePartnerships: number;
+      collectionRate: number;
+    };
+    users?: {
+      total: number;
+      citizens: number;
+      admins: number;
+      partners: number;
+    };
+    wasteReports?: {
+      total: number;
+      pending: number;
+      collected: number;
+      byType: { _id: string; count: number }[];
+      last7Days: { _id: string; count: number }[];
+    };
+    wasteByType?: { _id: string; count: number }[];
+    reportsLast30Days?: { _id: string; count: number }[];
+    collaborations?: {
+      total: number;
+      pending: number;
+      approved: number;
+      byType: { _id: string; count: number }[];
+    };
+  };
 }
 
 const StatsOverview: React.FC = () => {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<'public' | 'admin'>('public');
   const pdfRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/stats', {
+        const token = localStorage.getItem('token');
+        const userRole = localStorage.getItem('userRole');
+        
+        // Déterminer l'endpoint selon le rôle
+        const endpoint = userRole === 'admin' ? '/api/stats' : '/api/stats/public';
+        
+        const response = await fetch(`http://localhost:4000${endpoint}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data: StatsData = await response.json();
         setStats(data);
+        
+        // Définir le mode d'affichage selon les données disponibles
+        if (data.data.users) {
+          setViewMode('admin');
+        } else {
+          setViewMode('public');
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error("❌ Erreur de récupération des statistiques :", error);
@@ -40,8 +86,50 @@ const StatsOverview: React.FC = () => {
     fetchStats();
   }, []);
 
-  const resolutionRate = stats?.totalReports
-    ? Math.round(((stats.completed ?? 0) / stats.totalReports) * 100)
+  // Calculer les données pour l'affichage
+  const getDisplayData = () => {
+    if (!stats?.data) return null;
+
+    if (viewMode === 'admin' && stats.data.wasteReports) {
+      return {
+        totalReports: stats.data.wasteReports.total,
+        completed: stats.data.wasteReports.collected,
+        pending: stats.data.wasteReports.pending,
+        wasteTypeData: stats.data.wasteReports.byType.map(item => ({
+          name: item._id || 'Non spécifié',
+          count: item.count
+        })),
+        evolutionData: stats.data.wasteReports.last7Days.map(item => ({
+          date: item._id,
+          count: item.count
+        })),
+        users: stats.data.users
+      };
+    } else if (stats.data.summary) {
+      return {
+        totalReports: stats.data.summary.totalReports,
+        completed: stats.data.summary.collectedReports,
+        pending: stats.data.summary.totalReports - stats.data.summary.collectedReports,
+        wasteTypeData: stats.data.wasteByType?.map(item => ({
+          name: item._id || 'Non spécifié',
+          count: item.count
+        })) || [],
+        evolutionData: stats.data.reportsLast30Days?.map(item => ({
+          date: item._id,
+          count: item.count
+        })) || [],
+        collectionRate: stats.data.summary.collectionRate,
+        totalCitizens: stats.data.summary.totalCitizens,
+        activePartnerships: stats.data.summary.activePartnerships
+      };
+    }
+    
+    return null;
+  };
+
+  const displayData = getDisplayData();
+  const resolutionRate = displayData?.totalReports
+    ? Math.round(((displayData.completed ?? 0) / displayData.totalReports) * 100)
     : 0;
 
   const handleExportPDF = () => {
@@ -57,127 +145,233 @@ const StatsOverview: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="text-center text-gray-600">Chargement des statistiques...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <span className="ml-3 text-gray-600">Chargement des statistiques...</span>
+      </div>
+    );
+  }
+
+  if (!displayData) {
+    return (
+      <div className="text-center text-red-600 p-8">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+        <p>Erreur lors du chargement des statistiques</p>
+      </div>
+    );
   }
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {viewMode === 'admin' ? 'Statistiques Administrateur' : 'Statistiques Publiques'}
+          </h2>
+          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+            {viewMode === 'admin' ? 'Vue complète' : 'Vue publique'}
+          </span>
+        </div>
         <button onClick={handleExportPDF} className="btn-secondary flex items-center gap-2">
           <FileText className="w-4 h-4" />
           Exporter en PDF
         </button>
       </div>
 
-      <div ref={pdfRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div ref={pdfRef} className="space-y-6">
         {/* 🟢 Statistiques générales */}
         <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Statistiques générales</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center">
-                <Trash2 className="text-green-700" size={20} />
-                <div className="ml-3">
-                  <p className="text-sm text-gray-600">Total des signalements</p>
-                  <p className="text-xl font-semibold">{stats?.totalReports ?? 0}</p>
+          <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            <BarChart className="w-5 h-5 text-green-600" />
+            Vue d'ensemble
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-700 font-medium">Total des signalements</p>
+                  <p className="text-3xl font-bold text-green-800">{displayData.totalReports}</p>
                 </div>
+                <Trash2 className="text-green-600 w-8 h-8" />
               </div>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center">
-                <CheckCircle className="text-blue-700" size={20} />
-                <div className="ml-3">
-                  <p className="text-sm text-gray-600">Signalements résolus</p>
-                  <p className="text-xl font-semibold">{stats?.completed ?? 0}</p>
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-blue-700 font-medium">Signalements résolus</p>
+                  <p className="text-3xl font-bold text-blue-800">{displayData.completed}</p>
                 </div>
+                <CheckCircle className="text-blue-600 w-8 h-8" />
               </div>
             </div>
 
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <div className="flex items-center">
-                <Clock className="text-yellow-700" size={20} />
-                <div className="ml-3">
-                  <p className="text-sm text-gray-600">En attente</p>
-                  <p className="text-xl font-semibold">{stats?.pending ?? 0}</p>
+            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-6 rounded-lg border border-yellow-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-yellow-700 font-medium">En attente</p>
+                  <p className="text-3xl font-bold text-yellow-800">{displayData.pending}</p>
                 </div>
+                <Clock className="text-yellow-600 w-8 h-8" />
               </div>
             </div>
 
-            <div className="bg-red-50 p-4 rounded-lg">
-              <div className="flex items-center">
-                <AlertCircle className="text-red-700" size={20} />
-                <div className="ml-3">
-                  <p className="text-sm text-gray-600">Points critiques</p>
-                  <p className="text-xl font-semibold">{stats?.criticalAreas ?? 0}</p>
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-purple-700 font-medium">Taux de résolution</p>
+                  <p className="text-3xl font-bold text-purple-800">{resolutionRate}%</p>
                 </div>
-              </div>
-            </div>
-
-            <div className="bg-purple-50 p-4 rounded-lg col-span-2">
-              <div className="flex items-center">
-                <Percent className="text-purple-700" size={20} />
-                <div className="ml-3">
-                  <p className="text-sm text-gray-600">Taux de résolution</p>
-                  <p className="text-xl font-semibold">{resolutionRate}%</p>
-                </div>
+                <Percent className="text-purple-600 w-8 h-8" />
               </div>
             </div>
           </div>
+
+          {/* Statistiques supplémentaires pour la vue publique */}
+          {viewMode === 'public' && displayData.totalCitizens && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-6 rounded-lg border border-indigo-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-indigo-700 font-medium">Citoyens actifs</p>
+                    <p className="text-3xl font-bold text-indigo-800">{displayData.totalCitizens}</p>
+                  </div>
+                  <AlertCircle className="text-indigo-600 w-8 h-8" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-teal-50 to-teal-100 p-6 rounded-lg border border-teal-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-teal-700 font-medium">Partenariats actifs</p>
+                    <p className="text-3xl font-bold text-teal-800">{displayData.activePartnerships}</p>
+                  </div>
+                  <CheckCircle className="text-teal-600 w-8 h-8" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Statistiques utilisateurs pour les admins */}
+          {viewMode === 'admin' && displayData.users && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-6 rounded-lg border border-indigo-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-indigo-700 font-medium">Total utilisateurs</p>
+                    <p className="text-3xl font-bold text-indigo-800">{displayData.users.total}</p>
+                  </div>
+                  <AlertCircle className="text-indigo-600 w-8 h-8" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-teal-50 to-teal-100 p-6 rounded-lg border border-teal-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-teal-700 font-medium">Citoyens</p>
+                    <p className="text-3xl font-bold text-teal-800">{displayData.users.citizens}</p>
+                  </div>
+                  <CheckCircle className="text-teal-600 w-8 h-8" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-6 rounded-lg border border-orange-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-orange-700 font-medium">Partenaires</p>
+                    <p className="text-3xl font-bold text-orange-800">{displayData.users.partners}</p>
+                  </div>
+                  <AlertCircle className="text-orange-600 w-8 h-8" />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 🟢 Graphique en barres des types de déchets */}
         <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Types de déchets signalés</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={stats?.wasteTypeData ?? []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#2E7D32" barSize={40} />
-            </BarChart>
-          </ResponsiveContainer>
+          <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            <BarChart className="w-5 h-5 text-green-600" />
+            Types de déchets signalés
+          </h3>
+          {displayData.wasteTypeData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={displayData.wasteTypeData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#2E7D32" barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center text-gray-500 py-12">
+              <Trash2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune donnée de type de déchet disponible</p>
+            </div>
+          )}
         </div>
 
         {/* 🟢 Graphique circulaire */}
         <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Répartition des types de déchets</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={stats?.wasteTypeData ?? []}
-                dataKey="count"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label
-              >
-                {(stats?.wasteTypeData ?? []).map((entry: { name: string; count: number }, index: number) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={['#2E7D32', '#FF9800', '#2196F3', '#E53935'][index % 4]}
-                  />
-                ))}
-              </Pie>
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            <PieChart className="w-5 h-5 text-green-600" />
+            Répartition des types de déchets
+          </h3>
+          {displayData.wasteTypeData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={displayData.wasteTypeData}
+                  dataKey="count"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {displayData.wasteTypeData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={['#2E7D32', '#FF9800', '#2196F3', '#E53935', '#9C27B0', '#00BCD4'][index % 6]}
+                    />
+                  ))}
+                </Pie>
+                <Legend />
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center text-gray-500 py-12">
+              <PieChart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune donnée de répartition disponible</p>
+            </div>
+          )}
         </div>
 
-        {/* 🟢 Signalements par quartier */}
-        <div className="card md:col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Signalements par quartier (Pita)</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={stats?.reportsByNeighborhood ?? []} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="name" type="category" width={120} />
-              <Tooltip />
-              <Bar dataKey="reports" fill="#1565C0" barSize={20} />
-            </BarChart>
-          </ResponsiveContainer>
+        {/* 🟢 Évolution des signalements */}
+        <div className="card">
+          <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            <BarChart className="w-5 h-5 text-green-600" />
+            Évolution des signalements ({viewMode === 'admin' ? '7 derniers jours' : '30 derniers jours'})
+          </h3>
+          {displayData.evolutionData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={displayData.evolutionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#1565C0" barSize={30} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center text-gray-500 py-12">
+              <BarChart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune donnée d'évolution disponible</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

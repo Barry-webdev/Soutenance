@@ -77,9 +77,10 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, MapPin, BarChart2, Award, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import MapView from '../components/map/MapView';
+import WelcomeMessage from '../components/common/WelcomeMessage';
 
 const HomePage: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
@@ -101,6 +102,19 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4">
+
+      {/* Message de bienvenue personnalisé pour utilisateurs connectés */}
+      {isAuthenticated && user && (
+        <section className="py-6 mb-6">
+          <WelcomeMessage 
+            user={{
+              name: user.name,
+              role: user.role,
+              points: user.points
+            }}
+          />
+        </section>
+      )}
 
       {/* Hero Section */}
       <section className="py-10 mb-10">

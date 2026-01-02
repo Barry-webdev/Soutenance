@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Bell, MapPin, User, LogOut, BarChart2, Home } from 'lucide-react';
+import { Menu, X, Bell, MapPin, User, LogOut, BarChart2, Home, Trophy, Medal, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import NotificationDropdown from './NotificationDropdown';
@@ -66,29 +66,63 @@ const Navbar: React.FC = () => {
         <Link to="/" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
           Accueil
         </Link>
-        <Link to="/map" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
-          Carte
-        </Link>
-        <Link to="/statistics" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
-          Statistiques
-        </Link>
-
-        <Link
-          to="/collaboration"
-          className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium"
-        >
-          🤝 Collaboration
-        </Link>
-
-        {isAuthenticated ? (
+        
+        {/* Navigation pour CITOYENS */}
+        {isAuthenticated && user?.role === 'citizen' && (
           <>
             <Link
+              to="/collaboration"
+              className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium"
+            >
+              🤝 Collaboration
+            </Link>
+            <Link
               to="/report"
-              className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300"
+              className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-300"
             >
               Signaler
             </Link>
+          </>
+        )}
 
+        {/* Navigation pour ADMINS */}
+        {isAuthenticated && user?.role === 'admin' && (
+          <>
+            <Link to="/map" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Carte
+            </Link>
+            <Link to="/statistics" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Statistiques
+            </Link>
+            <Link to="/badges" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Badges
+            </Link>
+            <Link to="/leaderboard" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Classement
+            </Link>
+            <Link to="/search" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Recherche
+            </Link>
+          </>
+        )}
+
+        {/* Navigation pour utilisateurs NON CONNECTÉS */}
+        {!isAuthenticated && (
+          <>
+            <Link to="/map" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Carte
+            </Link>
+            <Link to="/statistics" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Statistiques
+            </Link>
+            <Link to="/leaderboard" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Classement
+            </Link>
+          </>
+        )}
+
+        {isAuthenticated ? (
+          <>
             {/* Notifications */}
             <div className="relative">
               <button
@@ -115,14 +149,17 @@ const Navbar: React.FC = () => {
               <button className="flex items-center text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium transition-opacity duration-500 ease-in">
                 <span className="mr-1 transition-opacity duration-500 ease-in opacity-100">
                   {user?.role === 'admin'
-                    ? 'Bienvenue Admin'
-                    : `Bienvenue ${user?.name || 'Utilisateur'}`}
+                    ? 'Admin'
+                    : `${user?.name?.split(' ')[0] || 'Utilisateur'}`}
                 </span>
                 <User size={18} />
               </button>
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block transition-opacity duration-300">
                 <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                   Profil
+                </Link>
+                <Link to="/help" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  Aide
                 </Link>
                 {user?.role === 'admin' && (
                   <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
@@ -141,7 +178,7 @@ const Navbar: React.FC = () => {
         ) : (
           <Link
             to="/login"
-            className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300"
+            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-300"
           >
             Connexion
           </Link>
@@ -173,35 +210,17 @@ const Navbar: React.FC = () => {
             <Home size={18} className="mr-2" />Accueil
           </div>
         </Link>
-        <Link
-          to="/map"
-          className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-          onClick={toggleMenu}
-        >
-          <div className="flex items-center">
-            <MapPin size={18} className="mr-2" />Carte
-          </div>
-        </Link>
-        <Link
-          to="/statistics"
-          className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-          onClick={toggleMenu}
-        >
-          <div className="flex items-center">
-            <BarChart2 size={18} className="mr-2" />Statistiques
-          </div>
-        </Link>
 
-        <Link
-          to="/collaboration"
-          className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-          onClick={toggleMenu}
-        >
-          <div className="flex items-center">🤝 Collaboration</div>
-        </Link>
-
-        {isAuthenticated ? (
+        {/* Menu mobile pour CITOYENS */}
+        {isAuthenticated && user?.role === 'citizen' && (
           <>
+            <Link
+              to="/collaboration"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">🤝 Collaboration</div>
+            </Link>
             <Link
               to="/report"
               className="block px-3 py-2 rounded-md text-base font-medium text-white bg-green-700"
@@ -209,6 +228,95 @@ const Navbar: React.FC = () => {
             >
               Signaler
             </Link>
+          </>
+        )}
+
+        {/* Menu mobile pour ADMINS */}
+        {isAuthenticated && user?.role === 'admin' && (
+          <>
+            <Link
+              to="/map"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">
+                <MapPin size={18} className="mr-2" />Carte
+              </div>
+            </Link>
+            <Link
+              to="/statistics"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">
+                <BarChart2 size={18} className="mr-2" />Statistiques
+              </div>
+            </Link>
+            <Link
+              to="/badges"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">
+                <Trophy size={18} className="mr-2" />Badges
+              </div>
+            </Link>
+            <Link
+              to="/leaderboard"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">
+                <Medal size={18} className="mr-2" />Classement
+              </div>
+            </Link>
+            <Link
+              to="/search"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">
+                <Search size={18} className="mr-2" />Recherche
+              </div>
+            </Link>
+          </>
+        )}
+
+        {/* Menu mobile pour utilisateurs NON CONNECTÉS */}
+        {!isAuthenticated && (
+          <>
+            <Link
+              to="/map"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">
+                <MapPin size={18} className="mr-2" />Carte
+              </div>
+            </Link>
+            <Link
+              to="/statistics"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">
+                <BarChart2 size={18} className="mr-2" />Statistiques
+              </div>
+            </Link>
+            <Link
+              to="/leaderboard"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">
+                <Medal size={18} className="mr-2" />Classement
+              </div>
+            </Link>
+          </>
+        )}
+
+        {isAuthenticated ? (
+          <>
             <Link
               to="/profile"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"

@@ -41,29 +41,75 @@ const AdminPanel: React.FC = () => {
 
   // Fetch Signalements
   const fetchReports = async (): Promise<WasteReport[]> => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
+    }
+
     const response = await fetch("http://localhost:4000/api/waste", {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
     });
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des signalements');
+    
+    if (response.status === 401) {
+      // Token expiré ou invalide
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
     }
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erreur API:', response.status, errorText);
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log('Données reçues:', data);
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Erreur inconnue');
+    }
+    
     return data.data?.wasteReports || [];
   };
 
   // Fetch Utilisateurs
   const fetchUsers = async (): Promise<User[]> => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
+    }
+
     const response = await fetch("http://localhost:4000/api/users", {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
     });
-    if (!response.ok) {
-      throw new Error('Erreur lors de la récupération des utilisateurs');
+    
+    if (response.status === 401) {
+      // Token expiré ou invalide
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
     }
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erreur API utilisateurs:', response.status, errorText);
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
+    console.log('Utilisateurs reçus:', data);
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Erreur inconnue');
+    }
+    
     return data.data || [];
   };
 
@@ -111,8 +157,62 @@ const AdminPanel: React.FC = () => {
   };
 
   // Affichage conditionnel
-  if (isLoadingReports || isLoadingUsers) return <div>Chargement...</div>;
-  if (reportsError || usersError) return <div>Erreur : {(reportsError || usersError as Error).message}</div>;
+  if (isLoadingReports || isLoadingUsers) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p>Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (reportsError || usersError) {
+    const error = reportsError || usersError as Error;
+    const isAuthError = error.message.includes('Session expirée') || error.message.includes('authentification manquant');
+    
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 m-4">
+        <h3 className="text-red-800 font-semibold mb-2">
+          {isAuthError ? 'Problème d\'authentification' : 'Erreur de chargement'}
+        </h3>
+        <p className="text-red-700 mb-2">{error.message}</p>
+        
+        {isAuthError ? (
+          <div className="flex gap-2">
+            <button 
+              onClick={() => window.location.href = '/login'} 
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Se reconnecter
+            </button>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : (
+          <>
+            <details className="text-sm text-red-600 mb-3">
+              <summary className="cursor-pointer hover:text-red-800">Détails techniques</summary>
+              <pre className="mt-2 bg-red-100 p-2 rounded text-xs overflow-auto">
+                {error.stack || 'Aucun détail supplémentaire disponible'}
+              </pre>
+            </details>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Réessayer
+            </button>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="card">

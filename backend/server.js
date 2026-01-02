@@ -12,7 +12,11 @@ import statsRoutes from './routes/statsRoute.js';
 import exportRoutes from './routes/exportWordRoute.js';
 import auditRoutes from './routes/auditLogRoute.js';
 import notificationRoutes from './routes/notificationRoute.js';
+import badgeRoutes from './routes/badgeRoute.js';
+import searchRoutes from './routes/searchRoute.js';
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
+import webSocketService from './services/websocketService.js';
+import { createServer } from 'http';
 
 const app = express();
 
@@ -53,6 +57,8 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/gamification', badgeRoutes);
+app.use('/api/search', searchRoutes);
 
 // Page d'accueil
 app.get('/', (req, res) => {
@@ -69,7 +75,12 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT;
-app.listen(PORT, () => {
+const server = createServer(app);
+
+// Initialiser WebSocket
+webSocketService.initialize(server);
+
+server.listen(PORT, () => {
     console.log(`🚀 Serveur démarré sur le port ${PORT}`);
     console.log(`📊 Environnement: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🌐 URL: http://localhost:${PORT}`);

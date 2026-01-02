@@ -13,6 +13,9 @@ import { uploadSingleImage, validateImageUpload, handleUploadError } from '../mi
 
 const router = express.Router();
 
+// Routes publiques (sans authentification)
+router.get('/public', getWasteReportsMap);
+
 // Routes accessibles aux citoyens et partenaires
 router.post('/', 
     authenticate, 

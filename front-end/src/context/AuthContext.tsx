@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState } from '../types';
+import webSocketService from '../services/websocketService';
 
 // Mock authentication - would be replaced with actual API calls
 const MOCK_ADMIN_USER = {
@@ -47,6 +48,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
+
+  // Connexion WebSocket quand l'utilisateur est authentifié
+  useEffect(() => {
+    if (authState.isAuthenticated && authState.user) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Délai pour éviter les erreurs de connexion immédiate
+        setTimeout(() => {
+          try {
+            webSocketService.connect(token);
+          } catch (error) {
+            console.log('WebSocket non disponible:', error);
+          }
+        }, 1000);
+      }
+    } else {
+      try {
+        webSocketService.disconnect();
+      } catch (error) {
+        console.log('Erreur déconnexion WebSocket:', error);
+      }
+    }
+
+    return () => {
+      try {
+        webSocketService.disconnect();
+      } catch (error) {
+        console.log('Erreur cleanup WebSocket:', error);
+      }
+    };
+  }, [authState.isAuthenticated, authState.user]);
 
   // ✅ Check for saved auth on app load
   useEffect(() => {

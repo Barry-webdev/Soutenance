@@ -9,6 +9,7 @@ interface NotificationContextType {
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
   markAllAsRead: () => void;
+  markAsRead: (notificationId: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -20,12 +21,25 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const userData = localStorage.getItem('user');
   const userId = userData ? (JSON.parse(userData)?.id ?? null) : null;
 
+  // Écouter les nouvelles notifications via WebSocket
+  useEffect(() => {
+    const handleNewNotification = (event: CustomEvent) => {
+      const notification = event.detail;
+      addNotification(notification);
+    };
+
+    window.addEventListener('newNotification', handleNewNotification as EventListener);
+    return () => {
+      window.removeEventListener('newNotification', handleNewNotification as EventListener);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchNotifications = async () => {
       if (!userId) return;
 
       try {
-        const response = await fetch(`http://localhost:4000/api/notifications/${userId}`, {
+        const response = await fetch(`/api/notifications/${userId}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -110,6 +124,29 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Erreur lors de la mise à jour');
+
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === notificationId ? { ...notif, read: true } : notif
+        )
+      );
+
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour de la notification', error);
+    }
+  };
+
   return (
     <NotificationContext.Provider
       value={{
@@ -119,6 +156,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setNotifications,
         addNotification,
         markAllAsRead,
+        markAsRead,
       }}
     >
       {children}

@@ -114,6 +114,14 @@ export const register = async (req, res) => {
 
         const token = newUser.generateAuthToken();
 
+        // Envoyer l'email de bienvenue (non bloquant)
+        try {
+            const NotificationService = (await import('../services/notification.js')).default;
+            await NotificationService.sendWelcomeNotification(newUser);
+        } catch (notifError) {
+            console.log('⚠️ Erreur notification bienvenue (non bloquante):', notifError.message);
+        }
+
         // Audit pour inscription réussie
         await logManualAudit(
             'USER_REGISTER',
