@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { buildApiUrl } from '../config/api';
 
 const Collaboration: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -27,7 +28,7 @@ const Collaboration: React.FC = () => {
     console.log('📤 Demande envoyée :', formData);
 
     try {
-      const res = await fetch('http://localhost:4000/api/collaboration/submit', {
+      const res = await fetch(buildApiUrl('/api/collaboration/submit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

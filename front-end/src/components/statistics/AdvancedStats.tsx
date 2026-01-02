@@ -4,6 +4,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, Legend
 } from 'recharts';
 import { TrendingUp, Calendar, MapPin, Users, Zap, Award } from 'lucide-react';
+import { buildApiUrl } from '../../config/api';
 
 interface AdvancedStatsData {
   success: boolean;
@@ -39,7 +40,7 @@ const AdvancedStats: React.FC = () => {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:4000/api/stats', {
+        const response = await fetch(buildApiUrl('/api/stats'), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

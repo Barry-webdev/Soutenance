@@ -105,7 +105,7 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
       setError(null);
       
       // Utiliser la route publique de la carte
-      const response = await fetch('http://localhost:4000/api/waste/map', {
+      const response = await fetch(buildApiUrl('/api/waste/map'), {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
@@ -115,7 +115,7 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
       if (!response.ok) {
         // Si pas d'authentification, essayer sans token
         if (response.status === 401) {
-          const publicResponse = await fetch('http://localhost:4000/api/waste/public', {
+          const publicResponse = await fetch(buildApiUrl('/api/waste/public'), {
             headers: {
               'Content-Type': 'application/json'
             }

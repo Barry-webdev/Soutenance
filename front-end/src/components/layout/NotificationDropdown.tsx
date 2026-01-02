@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { formatDistanceToNow } from '../../utils/dateUtils';
 import { useNotifications } from '../../context/NotificationContext'; // 👈 Ajouté
+import { buildApiUrl } from '../../config/api';
 
 interface NotificationDropdownProps {
   userId: string;
@@ -15,7 +16,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await fetch(`http://localhost:4000/api/notifications/${userId}`, {
+        const response = await fetch(buildApiUrl(`/api/notifications/${userId}`), {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -46,7 +47,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
   // 🔥 Marquer une notification comme lue
   const handleNotificationClick = async (id: string) => {
     try {
-      await fetch(`http://localhost:4000/api/notifications/${id}/read`, { 
+      await fetch(buildApiUrl(`/api/notifications/${id}/read`), { 
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

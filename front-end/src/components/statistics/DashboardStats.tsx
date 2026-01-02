@@ -3,6 +3,7 @@ import {
   Activity, Users, TrendingUp, Clock, CheckCircle, AlertTriangle,
   RefreshCw, Calendar, Award, Target
 } from 'lucide-react';
+import { buildApiUrl } from '../../config/api';
 
 interface DashboardStatsData {
   success: boolean;
@@ -31,7 +32,7 @@ const DashboardStats: React.FC = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/stats/dashboard', {
+      const response = await fetch(buildApiUrl('/api/stats/dashboard'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
