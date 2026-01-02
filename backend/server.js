@@ -9,6 +9,7 @@ import userRoutes from './routes/userRoute.js';
 import wasteRoutes from './routes/wasteRoute.js';
 import collaborationRoutes from './routes/collaborationRoute.js';
 import statsRoutes from './routes/statsRoute.js';
+import notificationRoutes from './routes/notificationRoute.js';
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 import { createServer } from 'http';
 
@@ -100,6 +101,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/waste', wasteRoutes);
 app.use('/api/collaborations', collaborationRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Endpoints de santé pour les tests et le monitoring
 app.get('/api/health', (req, res) => {

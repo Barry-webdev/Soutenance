@@ -6,6 +6,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import NotificationDropdown from './NotificationDropdown';
 import EcoPulseLogo from '../../assets/images/EcoPulse.logo.png'; // ✅ logo ajouté
 import { Brain } from 'lucide-react';
+import { buildApiUrl } from '../../config/api';
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -30,12 +31,25 @@ const Navbar: React.FC = () => {
     const fetchUnreadCount = async () => {
       try {
         if (user?.id) {
-          const res = await fetch(`/api/notifications/${user.id}/unread-count`);
-          const data = await res.json();
-          setUnreadCount(data.count); // Mise à jour du compteur
+          const token = localStorage.getItem('token');
+          const res = await fetch(buildApiUrl('/api/notifications/unread-count'), {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            setUnreadCount(data.data?.unreadCount || 0);
+          } else {
+            console.warn('⚠️ Impossible de récupérer le nombre de notifications non lues');
+            setUnreadCount(0);
+          }
         }
       } catch (error) {
         console.error('❌ Erreur lors du chargement des notifications non lues', error);
+        setUnreadCount(0);
       }
     };
 
