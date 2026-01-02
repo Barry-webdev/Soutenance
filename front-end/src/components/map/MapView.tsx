@@ -10,7 +10,13 @@ interface WasteReport {
   location: {
     lat: number;
     lng: number;
+    address?: string;
   };
+  images?: {
+    original?: { url: string; filename: string };
+    thumbnail?: { url: string; filename: string };
+    medium?: { url: string; filename: string };
+  } | null;
   userId: {
     _id: string;
     name: string;
@@ -220,6 +226,25 @@ const MapView: React.FC = () => {
                     </span>
                   </div>
                   
+                  {/* Image du signalement */}
+                  {report.images?.thumbnail?.url && (
+                    <div className="mb-3">
+                      <img 
+                        src={`http://localhost:4000${report.images.thumbnail.url}`} 
+                        alt="Signalement" 
+                        className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                        onClick={() => {
+                          if (report.images?.original?.url) {
+                            window.open(`http://localhost:4000${report.images.original.url}`, '_blank');
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-gray-500 mt-1 italic">
+                        📸 Cliquez pour agrandir
+                      </p>
+                    </div>
+                  )}
+                  
                   <h4 className="font-semibold text-gray-900 mb-2">
                     {report.description}
                   </h4>
@@ -243,17 +268,45 @@ const MapView: React.FC = () => {
                         {report.location.lat.toFixed(4)}, {report.location.lng.toFixed(4)}
                       </span>
                     </div>
+                    {report.location.address && (
+                      <div className="flex justify-between">
+                        <span>Adresse:</span>
+                        <span className="text-xs">{report.location.address}</span>
+                      </div>
+                    )}
                   </div>
                   
-                  <div className="mt-3 pt-3 border-t">
-                    <a
-                      href={`https://www.google.com/maps?q=${report.location.lat},${report.location.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    >
-                      📍 Voir sur Google Maps →
-                    </a>
+                  <div className="mt-3 pt-3 border-t space-y-2">
+                    {/* Boutons de navigation */}
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => {
+                          const url = `https://www.google.com/maps?q=${report.location.lat},${report.location.lng}`;
+                          window.open(url, '_blank');
+                        }}
+                        className="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 rounded"
+                      >
+                        📍 Google Maps
+                      </button>
+                      <button
+                        onClick={() => {
+                          const url = `https://www.google.com/maps/dir/?api=1&destination=${report.location.lat},${report.location.lng}`;
+                          window.open(url, '_blank');
+                        }}
+                        className="text-green-600 hover:text-green-800 text-xs font-medium px-2 py-1 bg-green-50 rounded"
+                      >
+                        🚗 Itinéraire
+                      </button>
+                      <button
+                        onClick={() => {
+                          const url = `https://www.openstreetmap.org/?mlat=${report.location.lat}&mlon=${report.location.lng}&zoom=16`;
+                          window.open(url, '_blank');
+                        }}
+                        className="text-purple-600 hover:text-purple-800 text-xs font-medium px-2 py-1 bg-purple-50 rounded"
+                      >
+                        🌍 OSM
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

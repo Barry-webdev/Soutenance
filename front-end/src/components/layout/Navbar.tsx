@@ -71,6 +71,12 @@ const Navbar: React.FC = () => {
         {isAuthenticated && user?.role === 'citizen' && (
           <>
             <Link
+              to="/my-reports"
+              className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium"
+            >
+              📋 Mes signalements
+            </Link>
+            <Link
               to="/collaboration"
               className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium"
             >

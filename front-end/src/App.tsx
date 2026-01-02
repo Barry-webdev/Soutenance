@@ -16,6 +16,7 @@ import BadgesPage from './pages/BadgesPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import SearchPage from './pages/SearchPage';
 import HelpPage from './pages/HelpPage';
+import MyReportsPage from './pages/MyReportsPage';
 import NotFoundPage from './pages/NotFundPage';
 import CollaborationPage from "./pages/CollaborationPage";
 import './App.css';
@@ -45,6 +46,11 @@ function App() {
                 <Route path="/report" element={
                   <ProtectedRoute>
                     <ReportPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/my-reports" element={
+                  <ProtectedRoute>
+                    <MyReportsPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/map" element={<MapPage />} />

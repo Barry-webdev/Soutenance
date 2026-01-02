@@ -271,9 +271,10 @@ const AdminPanel: React.FC = () => {
                       <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
                         {report.images?.thumbnail?.url ? (
                           <img 
-                            src={report.images.thumbnail.url} 
+                            src={`http://localhost:4000${report.images.thumbnail.url}`} 
                             alt="Aperçu" 
-                            className="w-12 h-12 object-cover rounded"
+                            className="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-80"
+                            onClick={() => setSelectedReport(report)}
                           />
                         ) : (
                           <span className="text-gray-400 text-xs">Pas d'image</span>
@@ -349,6 +350,53 @@ const AdminPanel: React.FC = () => {
                         <p><strong>Latitude:</strong> {selectedReport.location.lat}</p>
                         <p><strong>Longitude:</strong> {selectedReport.location.lng}</p>
                         <p><strong>Coordonnées:</strong> {selectedReport.location.lat.toFixed(6)}, {selectedReport.location.lng.toFixed(6)}</p>
+                        {selectedReport.location.address && (
+                          <p><strong>Adresse:</strong> {selectedReport.location.address}</p>
+                        )}
+                        
+                        {/* Boutons de navigation */}
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <button 
+                            onClick={() => {
+                              const url = `https://www.google.com/maps?q=${selectedReport.location.lat},${selectedReport.location.lng}`;
+                              window.open(url, '_blank');
+                            }}
+                            className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm flex items-center gap-1"
+                          >
+                            📍 Voir sur Google Maps
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const url = `https://maps.apple.com/?q=${selectedReport.location.lat},${selectedReport.location.lng}`;
+                              window.open(url, '_blank');
+                            }}
+                            className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm flex items-center gap-1"
+                          >
+                            🗺️ Voir sur Apple Maps
+                          </button>
+                          <button 
+                            onClick={() => {
+                              const url = `https://www.openstreetmap.org/?mlat=${selectedReport.location.lat}&mlon=${selectedReport.location.lng}&zoom=16`;
+                              window.open(url, '_blank');
+                            }}
+                            className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm flex items-center gap-1"
+                          >
+                            🌍 Voir sur OpenStreetMap
+                          </button>
+                        </div>
+                        
+                        {/* Bouton pour obtenir l'itinéraire */}
+                        <div className="mt-2">
+                          <button 
+                            onClick={() => {
+                              const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedReport.location.lat},${selectedReport.location.lng}`;
+                              window.open(url, '_blank');
+                            }}
+                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm flex items-center gap-1"
+                          >
+                            🚗 Obtenir l'itinéraire
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -384,9 +432,13 @@ const AdminPanel: React.FC = () => {
                     {selectedReport.images?.original?.url ? (
                       <div className="space-y-2">
                         <img 
-                          src={selectedReport.images.original.url} 
+                          src={`http://localhost:4000${selectedReport.images.original.url}`} 
                           alt="Signalement" 
-                          className="w-full h-64 object-cover rounded-lg border"
+                          className="w-full h-64 object-cover rounded-lg border cursor-pointer hover:opacity-90"
+                          onClick={() => {
+                            // Ouvrir l'image en plein écran
+                            window.open(`http://localhost:4000${selectedReport.images.original.url}`, '_blank');
+                          }}
                         />
                         <p className="text-sm text-gray-600">
                           Fichier: {selectedReport.images.original.filename}
@@ -396,6 +448,9 @@ const AdminPanel: React.FC = () => {
                             Taille: {(selectedReport.images.original.size / 1024).toFixed(1)} KB
                           </p>
                         )}
+                        <p className="text-xs text-gray-500 italic">
+                          💡 Cliquez sur l'image pour l'agrandir
+                        </p>
                       </div>
                     ) : (
                       <div className="w-full h-64 bg-gray-100 rounded-lg border flex items-center justify-center">
