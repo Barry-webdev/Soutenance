@@ -1,11 +1,16 @@
 {
   "name": "ecopulse-render-deploy",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "build": "cd backend && npm install --production",
-    "start": "cd backend && npm start"
+    "start": "cd backend && npm start",
+    "test": "node test-production-ready.js"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=18.x"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
   }
 }

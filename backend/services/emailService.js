@@ -1,26 +1,58 @@
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 class EmailService {
     constructor() {
-        // Configuration du transporteur email
-        this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.gmail.com',
-            port: parseInt(process.env.SMTP_PORT) || 587,
-            secure: false, // true pour 465, false pour autres ports
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS
-            }
-        });
+        this.isEnabled = false;
+        this.transporter = null;
+        
+        // Initialiser seulement si nodemailer est disponible et configuré
+        this.initializeIfAvailable();
+    }
 
-        // Vérifier la configuration
-        this.verifyConnection();
+    async initializeIfAvailable() {
+        try {
+            // Vérifier si les variables d'environnement sont configurées
+            if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+                console.log('⚠️ Configuration email non disponible - variables SMTP manquantes');
+                return;
+            }
+
+            // Essayer d'importer nodemailer seulement si disponible
+            try {
+                const nodemailer = await import('nodemailer');
+                
+                this.transporter = nodemailer.default.createTransporter({
+                    host: process.env.SMTP_HOST,
+                    port: process.env.SMTP_PORT || 587,
+                    secure: false,
+                    auth: {
+                        user: process.env.SMTP_USER,
+                        pass: process.env.SMTP_PASS
+                    }
+                });
+
+                this.isEnabled = true;
+                
+                // Vérifier la configuration
+                this.verifyConnection();
+            } catch (importError) {
+                console.log('⚠️ Nodemailer non disponible, service email désactivé');
+                this.isEnabled = false;
+            }
+        } catch (error) {
+            console.log('⚠️ Service email non disponible:', error.message);
+            this.isEnabled = false;
+        }
     }
 
     async verifyConnection() {
+        if (!this.isEnabled || !this.transporter) {
+            console.log('⚠️ Service email désactivé');
+            return;
+        }
+        
         try {
             await this.transporter.verify();
             console.log('✅ Service email configuré avec succès');
@@ -35,6 +67,11 @@ class EmailService {
      */
     async sendEmail({ to, subject, html, text }) {
         try {
+            if (!this.isEnabled || !this.transporter) {
+                console.log('⚠️ Service email désactivé, email non envoyé');
+                return { success: false, message: 'Service email désactivé' };
+            }
+
             if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
                 console.log('⚠️ Configuration SMTP manquante, email non envoyé');
                 return { success: false, message: 'Configuration SMTP manquante' };

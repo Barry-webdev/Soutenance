@@ -65,13 +65,58 @@ app.use('/api/waste', wasteRoutes);
 app.use('/api/collaborations', collaborationRoutes);
 app.use('/api/stats', statsRoutes);
 
+// Endpoints de santé pour les tests et le monitoring
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'OK',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        version: '1.0.0'
+    });
+});
+
+app.get('/api/health/db', async (req, res) => {
+    try {
+        // Test simple de connexion à la base de données
+        const mongoose = await import('mongoose');
+        if (mongoose.default.connection.readyState === 1) {
+            res.json({
+                status: 'OK',
+                database: 'connected',
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.status(503).json({
+                status: 'ERROR',
+                database: 'disconnected',
+                timestamp: new Date().toISOString()
+            });
+        }
+    } catch (error) {
+        res.status(503).json({
+            status: 'ERROR',
+            database: 'error',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // Page d'accueil
 app.get('/', (req, res) => {
     res.json({
         success: true,
-        message: 'Bienvenue sur Waste Management App API',
+        message: 'Bienvenue sur EcoPulse API',
         version: '1.0.0',
-        documentation: '/api/health'
+        documentation: '/api/health',
+        endpoints: {
+            health: '/api/health',
+            database: '/api/health/db',
+            auth: '/api/auth',
+            waste: '/api/waste',
+            stats: '/api/stats'
+        }
     });
 });
 
