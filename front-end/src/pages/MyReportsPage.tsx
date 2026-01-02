@@ -232,13 +232,12 @@ const MyReportsPage: React.FC = () => {
                     </button>
                     <button
                       onClick={() => {
-                        const url = `https://www.google.com/maps?q=${report.location.lat},${report.location.lng}`;
+                        const url = `https://www.google.com/maps/dir/?api=1&destination=${report.location.lat},${report.location.lng}`;
                         window.open(url, '_blank');
                       }}
-                      className="flex-1 px-3 py-2 bg-green-50 text-green-600 rounded hover:bg-green-100 text-sm flex items-center justify-center gap-1"
+                      className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-sm flex items-center justify-center gap-1"
                     >
-                      <MapPin className="w-4 h-4" />
-                      Localiser
+                      🚗 Itinéraire
                     </button>
                   </div>
                 </div>
@@ -298,24 +297,15 @@ const MyReportsPage: React.FC = () => {
                         <p><strong>Adresse:</strong> {selectedReport.location.address}</p>
                       )}
                       
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <button 
-                          onClick={() => {
-                            const url = `https://www.google.com/maps?q=${selectedReport.location.lat},${selectedReport.location.lng}`;
-                            window.open(url, '_blank');
-                          }}
-                          className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                        >
-                          📍 Google Maps
-                        </button>
+                      <div className="mt-3">
                         <button 
                           onClick={() => {
                             const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedReport.location.lat},${selectedReport.location.lng}`;
                             window.open(url, '_blank');
                           }}
-                          className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                         >
-                          🚗 Itinéraire
+                          🚗 Obtenir l'itinéraire
                         </button>
                       </div>
                     </div>

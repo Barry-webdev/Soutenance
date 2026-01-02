@@ -354,45 +354,14 @@ const AdminPanel: React.FC = () => {
                           <p><strong>Adresse:</strong> {selectedReport.location.address}</p>
                         )}
                         
-                        {/* Boutons de navigation */}
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <button 
-                            onClick={() => {
-                              const url = `https://www.google.com/maps?q=${selectedReport.location.lat},${selectedReport.location.lng}`;
-                              window.open(url, '_blank');
-                            }}
-                            className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm flex items-center gap-1"
-                          >
-                            📍 Voir sur Google Maps
-                          </button>
-                          <button 
-                            onClick={() => {
-                              const url = `https://maps.apple.com/?q=${selectedReport.location.lat},${selectedReport.location.lng}`;
-                              window.open(url, '_blank');
-                            }}
-                            className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm flex items-center gap-1"
-                          >
-                            🗺️ Voir sur Apple Maps
-                          </button>
-                          <button 
-                            onClick={() => {
-                              const url = `https://www.openstreetmap.org/?mlat=${selectedReport.location.lat}&mlon=${selectedReport.location.lng}&zoom=16`;
-                              window.open(url, '_blank');
-                            }}
-                            className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm flex items-center gap-1"
-                          >
-                            🌍 Voir sur OpenStreetMap
-                          </button>
-                        </div>
-                        
-                        {/* Bouton pour obtenir l'itinéraire */}
+                        {/* Bouton de navigation */}
                         <div className="mt-2">
                           <button 
                             onClick={() => {
                               const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedReport.location.lat},${selectedReport.location.lng}`;
                               window.open(url, '_blank');
                             }}
-                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm flex items-center gap-1"
+                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm flex items-center gap-1"
                           >
                             🚗 Obtenir l'itinéraire
                           </button>

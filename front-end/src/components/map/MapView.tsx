@@ -276,37 +276,17 @@ const MapView: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="mt-3 pt-3 border-t space-y-2">
-                    {/* Boutons de navigation */}
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => {
-                          const url = `https://www.google.com/maps?q=${report.location.lat},${report.location.lng}`;
-                          window.open(url, '_blank');
-                        }}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 rounded"
-                      >
-                        📍 Google Maps
-                      </button>
-                      <button
-                        onClick={() => {
-                          const url = `https://www.google.com/maps/dir/?api=1&destination=${report.location.lat},${report.location.lng}`;
-                          window.open(url, '_blank');
-                        }}
-                        className="text-green-600 hover:text-green-800 text-xs font-medium px-2 py-1 bg-green-50 rounded"
-                      >
-                        🚗 Itinéraire
-                      </button>
-                      <button
-                        onClick={() => {
-                          const url = `https://www.openstreetmap.org/?mlat=${report.location.lat}&mlon=${report.location.lng}&zoom=16`;
-                          window.open(url, '_blank');
-                        }}
-                        className="text-purple-600 hover:text-purple-800 text-xs font-medium px-2 py-1 bg-purple-50 rounded"
-                      >
-                        🌍 OSM
-                      </button>
-                    </div>
+                  <div className="mt-3 pt-3 border-t">
+                    {/* Bouton d'itinéraire */}
+                    <button
+                      onClick={() => {
+                        const url = `https://www.google.com/maps/dir/?api=1&destination=${report.location.lat},${report.location.lng}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="w-full px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-medium"
+                    >
+                      🚗 Obtenir l'itinéraire
+                    </button>
                   </div>
                 </div>
               ))}
