@@ -3,6 +3,7 @@ import User from '../models/userModel.js';
 import { logManualAudit } from '../middlewares/auditMiddleware.js';
 import ImageService from '../services/imageService.js';
 import NotificationService from '../services/notification.js';
+import GamificationService from '../services/gamificationService.js';
 
 /**
  * Créer un signalement de déchet
@@ -46,6 +47,9 @@ export const createWasteReport = async (req, res) => {
 
         // 🔔 NOTIFICATION: Alertes aux admins
         await NotificationService.notifyAdminsNewWasteReport(wasteReport);
+
+        // 🏆 GAMIFICATION: Vérifier et attribuer les badges
+        await GamificationService.checkAndAwardBadges(req.user._id);
 
         // Audit pour création de signalement
         await logManualAudit(
