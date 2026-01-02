@@ -32,6 +32,9 @@ const Navbar: React.FC = () => {
       try {
         if (user?.id) {
           const token = localStorage.getItem('token');
+          console.log('🔔 Récupération notifications pour:', user);
+          console.log('🔑 Token présent:', !!token);
+          
           const res = await fetch(buildApiUrl('/api/notifications/unread-count'), {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -39,11 +42,17 @@ const Navbar: React.FC = () => {
             }
           });
           
+          console.log('📊 Réponse API notifications:', res.status, res.statusText);
+          
           if (res.ok) {
             const data = await res.json();
-            setUnreadCount(data.data?.unreadCount || 0);
+            console.log('📥 Données notifications reçues:', data);
+            const count = data.data?.unreadCount || 0;
+            setUnreadCount(count);
+            console.log('🔢 Compteur mis à jour:', count);
           } else {
-            console.warn('⚠️ Impossible de récupérer le nombre de notifications non lues');
+            const errorText = await res.text();
+            console.warn('⚠️ Erreur API notifications:', res.status, errorText);
             setUnreadCount(0);
           }
         }
