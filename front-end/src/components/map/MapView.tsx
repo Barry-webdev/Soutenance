@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { buildApiUrl, buildImageUrl } from '../../config/api';
 
 // Interface pour les signalements
 interface WasteReport {
@@ -43,7 +44,7 @@ const MapView: React.FC = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch('http://localhost:4000/api/waste/map', {
+      const response = await fetch(buildApiUrl('/api/waste/map'), {
         headers
       });
       
@@ -230,12 +231,12 @@ const MapView: React.FC = () => {
                   {report.images?.thumbnail?.url && (
                     <div className="mb-3">
                       <img 
-                        src={`http://localhost:4000${report.images.thumbnail.url}`} 
+                        src={buildImageUrl(report.images.thumbnail.url)} 
                         alt="Signalement" 
                         className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
                         onClick={() => {
                           if (report.images?.original?.url) {
-                            window.open(`http://localhost:4000${report.images.original.url}`, '_blank');
+                            window.open(buildImageUrl(report.images.original.url), '_blank');
                           }
                         }}
                       />

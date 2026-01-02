@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { Trash2, CheckCircle, Clock, AlertCircle, Percent, FileText } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
+import { buildApiUrl } from '../../config/api';
 
 interface StatsData {
   success: boolean;
@@ -61,7 +62,7 @@ const StatsOverview: React.FC = () => {
         // Déterminer l'endpoint selon le rôle
         const endpoint = userRole === 'admin' ? '/api/stats' : '/api/stats/public';
         
-        const response = await fetch(`http://localhost:4000${endpoint}`, {
+        const response = await fetch(buildApiUrl(endpoint), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

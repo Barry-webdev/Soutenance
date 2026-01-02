@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 import { useQuery } from "@tanstack/react-query";
+import { buildApiUrl, buildImageUrl } from '../../config/api';
 
 // Interfaces
 interface WasteReport {
@@ -46,7 +47,7 @@ const AdminPanel: React.FC = () => {
       throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
     }
 
-    const response = await fetch("http://localhost:4000/api/waste", {
+    const response = await fetch(buildApiUrl("/api/waste"), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -83,7 +84,7 @@ const AdminPanel: React.FC = () => {
       throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
     }
 
-    const response = await fetch("http://localhost:4000/api/users", {
+    const response = await fetch(buildApiUrl("/api/users"), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -129,7 +130,7 @@ const AdminPanel: React.FC = () => {
   // Fonction de mise à jour du statut
   const updateReportStatus = async (reportId: string, newStatus: WasteReport['status']) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/waste/${reportId}/status`, {
+      const response = await fetch(buildApiUrl(`/api/waste/${reportId}/status`), {
         method: "PATCH",
         headers: { 
           "Content-Type": "application/json",
@@ -271,7 +272,7 @@ const AdminPanel: React.FC = () => {
                       <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
                         {report.images?.thumbnail?.url ? (
                           <img 
-                            src={`http://localhost:4000${report.images.thumbnail.url}`} 
+                            src={buildImageUrl(report.images.thumbnail.url)} 
                             alt="Aperçu" 
                             className="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-80"
                             onClick={() => setSelectedReport(report)}
@@ -401,12 +402,12 @@ const AdminPanel: React.FC = () => {
                     {selectedReport.images?.original?.url ? (
                       <div className="space-y-2">
                         <img 
-                          src={`http://localhost:4000${selectedReport.images.original.url}`} 
+                          src={buildImageUrl(selectedReport.images.original.url)} 
                           alt="Signalement" 
                           className="w-full h-64 object-cover rounded-lg border cursor-pointer hover:opacity-90"
                           onClick={() => {
                             // Ouvrir l'image en plein écran
-                            window.open(`http://localhost:4000${selectedReport.images.original.url}`, '_blank');
+                            window.open(buildImageUrl(selectedReport.images.original.url), '_blank');
                           }}
                         />
                         <p className="text-sm text-gray-600">

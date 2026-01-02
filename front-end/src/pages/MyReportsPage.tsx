@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, MapPin, Eye, Trash2, AlertCircle } from 'lucide-react';
+import { buildApiUrl, buildImageUrl } from '../config/api';
 
 interface WasteReport {
   _id: string;
@@ -31,7 +32,7 @@ const MyReportsPage: React.FC = () => {
       throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
     }
 
-    const response = await fetch("http://localhost:4000/api/waste/my-reports", {
+    const response = await fetch(buildApiUrl("/api/waste/my-reports"), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -163,12 +164,12 @@ const MyReportsPage: React.FC = () => {
                 {report.images?.medium?.url ? (
                   <div className="relative">
                     <img 
-                      src={`http://localhost:4000${report.images.medium.url}`} 
+                      src={buildImageUrl(report.images.medium.url)} 
                       alt="Signalement" 
                       className="w-full h-48 object-cover rounded-t-lg cursor-pointer hover:opacity-90"
                       onClick={() => {
                         if (report.images?.original?.url) {
-                          window.open(`http://localhost:4000${report.images.original.url}`, '_blank');
+                          window.open(buildImageUrl(report.images.original.url), '_blank');
                         }
                       }}
                     />
@@ -318,11 +319,11 @@ const MyReportsPage: React.FC = () => {
                   {selectedReport.images?.original?.url ? (
                     <div className="space-y-2">
                       <img 
-                        src={`http://localhost:4000${selectedReport.images.original.url}`} 
+                        src={buildImageUrl(selectedReport.images.original.url)} 
                         alt="Signalement" 
                         className="w-full h-64 object-cover rounded-lg border cursor-pointer hover:opacity-90"
                         onClick={() => {
-                          window.open(`http://localhost:4000${selectedReport.images.original.url}`, '_blank');
+                          window.open(buildImageUrl(selectedReport.images.original.url), '_blank');
                         }}
                       />
                       <p className="text-sm text-gray-600">

@@ -25,12 +25,28 @@ connectDB();
 
 // Middlewares de sécurité
 app.use(helmet());
+
+// Configuration CORS dynamique pour la production
+const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    // Ajoutez ici vos domaines de production
+    // 'https://votre-app.vercel.app',
+    // 'https://votre-domaine.com'
+];
+
 app.use(cors({
-    origin: [
-        process.env.FRONTEND_URL || 'http://localhost:3000',
-        'http://localhost:5173',
-        'http://localhost:5174'
-    ],
+    origin: function (origin, callback) {
+        // Permettre les requêtes sans origin (mobile apps, etc.)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Non autorisé par CORS'));
+        }
+    },
     credentials: true
 }));
 
