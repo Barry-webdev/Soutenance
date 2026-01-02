@@ -1,19 +1,13 @@
 {
   "name": "ecopulse-backend-deploy",
   "version": "1.0.0",
+  "type": "module",
   "description": "EcoPulse Backend for Render deployment",
-  "main": "start-render.js",
   "scripts": {
-    "build": "echo 'Installation des dépendances backend...' && cd backend && npm install",
-    "start": "node start-render.js",
-    "dev": "cd backend && npm run dev"
+    "build": "cd backend && npm install --production",
+    "start": "node server-start.js"
   },
   "engines": {
-    "node": "18.x",
-    "npm": "9.x"
-  },
-  "dependencies": {
-    "child_process": "^1.0.2"
-  },
-  "devDependencies": {}
+    "node": "18.x"
+  }
 }
