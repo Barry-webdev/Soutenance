@@ -230,9 +230,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         return;
       }
       
-      // Vérifier la taille (10MB max)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('L\'image ne peut pas dépasser 10MB');
+      // Vérifier la taille (15MB max)
+      if (file.size > 15 * 1024 * 1024) {
+        setError('L\'image ne peut pas dépasser 15MB');
         return;
       }
 
@@ -458,7 +458,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
               <label htmlFor="imageInput" className="cursor-pointer">
                 <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 mb-2">Cliquez pour ajouter une photo</p>
-                <p className="text-sm text-gray-500">PNG, JPG, WebP jusqu'à 10MB</p>
+                <p className="text-sm text-gray-500">PNG, JPG, WebP jusqu'à 15MB</p>
               </label>
             </div>
           ) : (

@@ -7,11 +7,11 @@ import { v4 as uuidv4 } from 'uuid';
 class ImageService {
     // Formats d'images supportés
     static SUPPORTED_FORMATS = ['jpeg', 'jpg', 'png', 'webp'];
-    static MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    static MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB (augmenté pour haute qualité)
     static MAX_DIMENSIONS = {
-        original: { width: 4000, height: 4000 },
-        medium: { width: 800, height: 600 },
-        thumbnail: { width: 300, height: 200 }
+        original: { width: 8000, height: 8000 }, // Augmenté pour photos modernes
+        medium: { width: 1200, height: 900 },    // Augmenté pour meilleur affichage
+        thumbnail: { width: 400, height: 300 }   // Augmenté pour écrans HD
     };
 
     /**

@@ -22,7 +22,7 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB max
+        fileSize: 15 * 1024 * 1024, // 15MB max (augmenté pour haute qualité)
         files: 1 // Une seule image par signalement
     }
 });
@@ -38,10 +38,10 @@ export const validateImageUpload = (req, res, next) => {
     }
 
     // Vérifier la taille
-    if (req.file.size > 10 * 1024 * 1024) {
+    if (req.file.size > 15 * 1024 * 1024) {
         return res.status(400).json({
             success: false,
-            error: 'L\'image est trop volumineuse (max 10MB)'
+            error: 'L\'image est trop volumineuse (max 15MB)'
         });
     }
 
@@ -63,7 +63,7 @@ export const handleUploadError = (error, req, res, next) => {
         if (error.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({
                 success: false,
-                error: 'L\'image est trop volumineuse (max 10MB)'
+                error: 'L\'image est trop volumineuse (max 15MB)'
             });
         }
         if (error.code === 'LIMIT_FILE_COUNT') {
