@@ -158,6 +158,10 @@ const Navbar: React.FC = () => {
                     {unreadCount}
                   </span>
                 )}
+                {/* Debug: afficher toujours un petit point pour voir si le composant fonctionne */}
+                {process.env.NODE_ENV === 'development' && (
+                  <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                )}
               </button>
               {showNotifications && user?.id && (
                 <NotificationDropdown

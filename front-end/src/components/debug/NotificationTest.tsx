@@ -58,14 +58,21 @@ const NotificationTest: React.FC = () => {
 
   const createTestNotification = async () => {
     const user = localStorage.getItem('user');
-    if (!user) return;
+    if (!user) {
+      setResult('❌ Aucun utilisateur connecté');
+      return;
+    }
     
     const userData = JSON.parse(user);
+    console.log('👤 Utilisateur actuel:', userData);
+    
+    // Créer une notification pour l'utilisateur actuel
     await testNotificationAPI('/api/notifications', 'POST', {
       userId: userData.id,
-      title: 'Test de notification',
-      message: 'Ceci est une notification de test créée depuis le composant de debug',
-      type: 'info'
+      title: 'Test de notification admin',
+      message: `Notification de test créée à ${new Date().toLocaleTimeString()} pour ${userData.name}`,
+      type: 'test',
+      priority: 'high'
     });
   };
 
@@ -119,6 +126,25 @@ const NotificationTest: React.FC = () => {
           className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 disabled:opacity-50 mr-2"
         >
           Créer Notification Test
+        </button>
+        
+        <button
+          onClick={() => {
+            // Simuler la création d'un signalement qui devrait notifier les admins
+            const user = localStorage.getItem('user');
+            if (user) {
+              const userData = JSON.parse(user);
+              testNotificationAPI('/api/waste', 'POST', {
+                description: 'Test de signalement pour déclencher notification admin',
+                wasteType: 'plastique',
+                location: { lat: 48.8566, lng: 2.3522 }
+              });
+            }
+          }}
+          disabled={loading}
+          className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 disabled:opacity-50 mr-2"
+        >
+          Simuler Signalement (→ Notif Admin)
         </button>
         
         <button
