@@ -114,13 +114,13 @@ class ImageService {
                 this.MAX_DIMENSIONS.original,
                 90
             );
-            const originalFilename = `${baseFilename}_original.jpg`;
-            const originalPath = path.join(uploadDir, originalFilename);
+            const originalProcessedFilename = `${baseFilename}_original.jpg`;
+            const originalPath = path.join(uploadDir, originalProcessedFilename);
             await fs.writeFile(originalPath, originalBuffer);
 
             results.original = {
-                url: `/uploads/waste-reports/${originalFilename}`,
-                filename: originalFilename,
+                url: `/uploads/waste-reports/${originalProcessedFilename}`,
+                filename: originalProcessedFilename,
                 size: originalBuffer.length,
                 dimensions: {
                     width: (await sharp(originalBuffer).metadata()).width,
