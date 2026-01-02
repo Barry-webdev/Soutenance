@@ -6,39 +6,35 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:health": "node health.js",
     "dev": "nodemon server.js",
-    "build": "echo 'Backend build complete'",
+    "build": "npm install --production",
     "test": "jest",
-    "test:watch": "jest --watch",
-    "deploy:railway": "railway deploy",
-    "deploy:render": "echo 'Deploy to Render via Git push'"
+    "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@types/nodemailer": "^7.0.4",
-    "bcryptjs": "^3.0.3",
-    "cloudinary": "^1.41.3",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "docx": "^8.0.0",
     "dotenv": "^16.3.1",
-    "express": "^4.21.2",
+    "express": "^4.18.2",
     "express-rate-limit": "^6.10.0",
-    "file-saver": "^2.0.5",
-    "helmet": "^7.2.0",
+    "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
     "multer": "^1.4.5-lts.1",
-    "multer-storage-cloudinary": "^4.0.0",
-    "nodemailer": "^7.0.12",
     "sharp": "^0.32.6",
-    "socket.io": "^4.8.3",
-    "uuid": "^9.0.1",
-    "validator": "^13.11.0",
-    "whatwg-url": "^15.1.0"
+    "socket.io": "^4.7.2",
+    "uuid": "^9.0.0",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "jest": "^29.6.2",
     "nodemon": "^3.0.1",
     "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
   },
   "keywords": [
     "waste-management",

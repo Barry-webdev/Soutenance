@@ -9,13 +9,7 @@ import userRoutes from './routes/userRoute.js';
 import wasteRoutes from './routes/wasteRoute.js';
 import collaborationRoutes from './routes/collaborationRoute.js';
 import statsRoutes from './routes/statsRoute.js';
-import exportRoutes from './routes/exportWordRoute.js';
-import auditRoutes from './routes/auditLogRoute.js';
-import notificationRoutes from './routes/notificationRoute.js';
-import badgeRoutes from './routes/badgeRoute.js';
-import searchRoutes from './routes/searchRoute.js';
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
-import webSocketService from './services/websocketService.js';
 import { createServer } from 'http';
 
 const app = express();
@@ -64,17 +58,12 @@ app.use(express.urlencoded({ extended: true }));
 // Servir les fichiers statiques (images)
 app.use('/uploads', express.static('uploads'));
 
-// Routes
+// Routes essentielles seulement
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/waste', wasteRoutes);
 app.use('/api/collaborations', collaborationRoutes);
 app.use('/api/stats', statsRoutes);
-app.use('/api/export', exportRoutes);
-app.use('/api/audit', auditRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/gamification', badgeRoutes);
-app.use('/api/search', searchRoutes);
 
 // Page d'accueil
 app.get('/', (req, res) => {
@@ -93,12 +82,12 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 4000;
 const server = createServer(app);
 
-// Initialiser WebSocket
-webSocketService.initialize(server);
+// WebSocket temporairement désactivé pour le déploiement
+// webSocketService.initialize(server);
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Serveur démarré sur le port ${PORT}`);
     console.log(`📊 Environnement: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🌐 URL: http://localhost:${PORT}`);
+    console.log(`🌐 URL: http://0.0.0.0:${PORT}`);
     console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
 });
