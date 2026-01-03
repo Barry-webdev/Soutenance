@@ -21,15 +21,19 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
         const responseData = await response.json();
         
         // ✅ Protection contre les données null/undefined
-        const data = Array.isArray(responseData.data) ? responseData.data : [];
+        const data = Array.isArray(responseData?.data) ? responseData.data : [];
 
         // ✅ Ajout d'un formatage sûr de la date
         const formattedNotifications = data.map((notif: any) => ({
           ...notif,
-          createdAt: formatDistanceToNow(notif.createdAt),
+          createdAt: notif.createdAt ? formatDistanceToNow(notif.createdAt) : 'Maintenant',
         }));
 
         setNotifications(formattedNotifications);

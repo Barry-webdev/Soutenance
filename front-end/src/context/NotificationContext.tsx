@@ -45,15 +45,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
-        if (!response.ok) throw new Error('Erreur réseau');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const responseData = await response.json();
         // ✅ Protection contre les données null/undefined
-        const data: Notification[] = Array.isArray(responseData.data) ? responseData.data : [];
+        const data: Notification[] = Array.isArray(responseData?.data) ? responseData.data : [];
 
         const formattedNotifications = data.map((notif) => ({
           ...notif,
-          createdAt: formatDistanceToNow(notif.createdAt),
+          createdAt: notif.createdAt ? formatDistanceToNow(notif.createdAt) : 'Maintenant',
         }));
 
         setNotifications(formattedNotifications);
