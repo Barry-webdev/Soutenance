@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../config/api';
-import { Users, UserCheck, UserX, Shield, Trash2, Search, Filter } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Trash2, Search, Filter, MapPin, Eye, Navigation } from 'lucide-react';
 import ApiUrlDebug from '../components/debug/ApiUrlDebug';
 
 interface User {
@@ -25,9 +25,31 @@ interface CollaborationRequest {
   submittedAt: string;
 }
 
+interface WasteReport {
+  _id: string;
+  description: string;
+  wasteType: string;
+  status: 'pending' | 'collected' | 'not_collected';
+  location: {
+    coordinates: [number, number];
+    address?: string;
+  };
+  images?: {
+    original?: { url: string };
+    medium?: { url: string };
+    thumbnail?: { url: string };
+  };
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+}
+
 const AdminPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'users' | 'collaborations'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'collaborations' | 'reports'>('reports');
   
   // États pour les utilisateurs
   const [users, setUsers] = useState<User[]>([]);
@@ -40,19 +62,108 @@ const AdminPage: React.FC = () => {
   const [collaborationsLoading, setCollaborationsLoading] = useState(true);
   const [processingCollaboration, setProcessingCollaboration] = useState<string | null>(null);
 
-  // Vérifier que l'utilisateur est super admin
-  if (user?.role !== 'super_admin') {
+  // États pour les signalements
+  const [reports, setReports] = useState<WasteReport[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+  const [reportFilter, setReportFilter] = useState('all');
+  const [updatingReport, setUpdatingReport] = useState<string | null>(null);
+
+  // Vérifier que l'utilisateur est admin ou super admin
+  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Accès refusé</h1>
-          <p className="text-gray-600">Cette page est réservée aux super administrateurs.</p>
+          <p className="text-gray-600">Cette page est réservée aux administrateurs.</p>
         </div>
       </div>
     );
   }
 
-  // Charger les utilisateurs
+  // Charger les signalements
+  const fetchReports = async () => {
+    try {
+      setReportsLoading(true);
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      if (reportFilter !== 'all') params.append('status', reportFilter);
+
+      const response = await fetch(buildApiUrl(`/api/waste?${params}`), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setReports(data.data.wasteReports || data.data);
+      }
+    } catch (error) {
+      console.error('Erreur chargement signalements:', error);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  // Mettre à jour le statut d'un signalement
+  const updateReportStatus = async (reportId: string, newStatus: string) => {
+    setUpdatingReport(reportId);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(buildApiUrl(`/api/waste/${reportId}/status`), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        await fetchReports(); // Recharger la liste
+        alert('Statut mis à jour avec succès');
+      } else {
+        const error = await response.json();
+        alert(`Erreur: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Erreur mise à jour statut:', error);
+      alert('Erreur lors de la mise à jour');
+    } finally {
+      setUpdatingReport(null);
+    }
+  };
+
+  // Supprimer un signalement
+  const deleteReport = async (reportId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce signalement ?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(buildApiUrl(`/api/waste/${reportId}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        await fetchReports(); // Recharger la liste
+        alert('Signalement supprimé avec succès');
+      } else {
+        const error = await response.json();
+        alert(`Erreur: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Erreur suppression signalement:', error);
+      alert('Erreur lors de la suppression');
+    }
+  };
+
+  // Ouvrir l'itinéraire vers le signalement
+  const openDirections = (coordinates: [number, number]) => {
+    const [lng, lat] = coordinates;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    window.open(url, '_blank');
+  };
   const fetchUsers = async () => {
     try {
       setUsersLoading(true);
@@ -218,6 +329,10 @@ const AdminPage: React.FC = () => {
     fetchCollaborations();
   }, []);
 
+  useEffect(() => {
+    fetchReports();
+  }, [reportFilter]);
+
   const getRoleBadge = (role: string) => {
     const colors = {
       super_admin: 'bg-purple-100 text-purple-800',
@@ -237,6 +352,15 @@ const AdminPage: React.FC = () => {
     return colors[status] || colors.pending;
   };
 
+  const getReportStatusBadge = (status: string) => {
+    const colors = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      collected: 'bg-green-100 text-green-800',
+      not_collected: 'bg-red-100 text-red-800'
+    };
+    return colors[status] || colors.pending;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       {/* Debug API temporaire */}
@@ -244,8 +368,15 @@ const AdminPage: React.FC = () => {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Administration Super Admin</h1>
-          <p className="text-gray-600 mt-2">Gestion des utilisateurs et des collaborations</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Administration {user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {user?.role === 'super_admin' 
+              ? 'Gestion des utilisateurs, collaborations et signalements'
+              : 'Gestion des signalements et statistiques'
+            }
+          </p>
         </div>
 
         {/* Onglets */}
@@ -253,32 +384,188 @@ const AdminPage: React.FC = () => {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
               <button
-                onClick={() => setActiveTab('users')}
+                onClick={() => setActiveTab('reports')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'users'
+                  activeTab === 'reports'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <Users className="inline mr-2" size={16} />
-                Gestion des utilisateurs
+                <MapPin className="inline mr-2" size={16} />
+                Signalements
               </button>
-              <button
-                onClick={() => setActiveTab('collaborations')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'collaborations'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                🤝 Demandes de collaboration
-              </button>
+              {user?.role === 'super_admin' && (
+                <>
+                  <button
+                    onClick={() => setActiveTab('users')}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'users'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Users className="inline mr-2" size={16} />
+                    Gestion des utilisateurs
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('collaborations')}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'collaborations'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    🤝 Demandes de collaboration
+                  </button>
+                </>
+              )}
             </nav>
           </div>
         </div>
 
         {/* Contenu des onglets */}
-        {activeTab === 'users' && (
+        {activeTab === 'reports' && (
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Gestion des signalements</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Gérez les statuts des signalements et suivez leur traitement
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Filter size={16} className="text-gray-400" />
+                  <select
+                    value={reportFilter}
+                    onChange={(e) => setReportFilter(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Tous les statuts</option>
+                    <option value="pending">En attente</option>
+                    <option value="collected">Collecté</option>
+                    <option value="not_collected">Non collecté</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              {reportsLoading ? (
+                <div className="p-8 text-center">Chargement...</div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Signalement
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Utilisateur
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Statut
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {reports.map((report) => (
+                      <tr key={report._id}>
+                        <td className="px-6 py-4">
+                          <div className="flex items-start space-x-3">
+                            {report.images?.thumbnail?.url && (
+                              <img 
+                                src={report.images.thumbnail.url} 
+                                alt="Signalement" 
+                                className="w-12 h-12 rounded-lg object-cover"
+                              />
+                            )}
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 max-w-xs">
+                                {report.description.length > 50 
+                                  ? `${report.description.substring(0, 50)}...` 
+                                  : report.description
+                                }
+                              </div>
+                              {report.location?.address && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  📍 {report.location.address}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{report.userId.name}</div>
+                            <div className="text-sm text-gray-500">{report.userId.email}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                            {report.wasteType}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            report.status === 'collected' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {report.status === 'pending' ? 'En attente' :
+                             report.status === 'collected' ? 'Collecté' : 'Non collecté'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(report.createdAt).toLocaleDateString('fr-FR')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2 flex-wrap">
+                            <select
+                              value={report.status}
+                              onChange={(e) => updateReportStatus(report._id, e.target.value)}
+                              disabled={updatingReport === report._id}
+                              className="text-xs border border-gray-300 rounded px-2 py-1 disabled:opacity-50"
+                            >
+                              <option value="pending">En attente</option>
+                              <option value="collected">Collecté</option>
+                              <option value="not_collected">Non collecté</option>
+                            </select>
+                            <button
+                              onClick={() => openDirections(report.location.coordinates)}
+                              className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                              title="Ouvrir l'itinéraire"
+                            >
+                              <Navigation size={12} />
+                            </button>
+                            <button
+                              onClick={() => deleteReport(report._id)}
+                              className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                              title="Supprimer"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'users' && user?.role === 'super_admin' && (
           <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b border-gray-200">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -400,7 +687,7 @@ const AdminPage: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'collaborations' && (
+        {activeTab === 'collaborations' && user?.role === 'super_admin' && (
           <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">Demandes de collaboration</h3>
