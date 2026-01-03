@@ -160,13 +160,16 @@ const HomePage: React.FC = () => {
                     <ArrowRight size={18} className="ml-2" />
                   </Link>
                 )}
-                <Link
-                  to="/map"
-                  className="w-full sm:w-auto bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg font-medium inline-flex items-center justify-center border border-gray-300 transition-colors touch-manipulation"
-                >
-                  <MapPin size={18} className="mr-2" />
-                  Voir la carte
-                </Link>
+                {/* Bouton Carte - ADMIN SEULEMENT */}
+                {(!isAuthenticated || user?.role === 'admin') && (
+                  <Link
+                    to="/map"
+                    className="w-full sm:w-auto bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg font-medium inline-flex items-center justify-center border border-gray-300 transition-colors touch-manipulation"
+                  >
+                    <MapPin size={18} className="mr-2" />
+                    Voir la carte
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -199,8 +202,10 @@ const HomePage: React.FC = () => {
               },
               {
                 icon: <MapPin size={24} />,
-                title: 'Localisez',
-                description: 'Visualisez tous les signalements sur une carte interactive pour voir les zones à problèmes.',
+                title: 'Géolocalisez',
+                description: isAuthenticated && user?.role === 'admin' 
+                  ? 'Visualisez tous les signalements sur une carte interactive pour voir les zones à problèmes.'
+                  : 'Partagez votre position précise pour que les équipes puissent localiser et traiter les déchets rapidement.',
                 bg: 'bg-blue-100 text-blue-700',
               },
               {
@@ -221,55 +226,91 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-        {/* Map Preview Section */}
-        <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Carte des signalements</h2>
-          <div className="rounded-lg overflow-hidden">
-            <MapView />
-          </div>
-          <div className="mt-4 text-center">
-            <Link 
-              to="/map" 
-              className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center text-sm sm:text-base touch-manipulation"
-            >
-              Voir la carte complète
-              <ArrowRight size={16} className="ml-1" />
-            </Link>
-          </div>
-        </section>
-
-        {/* Statistics Section */}
-        <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Statistiques</h2>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-            <h3 className="text-lg font-semibold mb-2">Impact collectif</h3>
-            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-              Ensemble, nous faisons la différence pour la propreté de Pita.
-            </p>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {[
-                { value: stats?.signalements ?? '...', label: 'Signalements' },
-                { value: stats?.resolus ?? '...', label: 'Problèmes résolus' },
-                { value: stats?.utilisateurs ?? '...', label: 'Utilisateurs actifs' },
-                { value: stats?.quartiers ?? '...', label: 'Quartiers couverts' },
-              ].map((stat, index) => (
-                <div key={index} className="text-center p-3 sm:p-4 bg-gray-50 rounded-lg">
-                  <p className="text-xl sm:text-2xl font-bold text-green-700">{stat.value}</p>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1">{stat.label}</p>
-                </div>
-              ))}
+        {/* Map Preview Section - ADMIN SEULEMENT */}
+        {isAuthenticated && user?.role === 'admin' && (
+          <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Carte des signalements</h2>
+            <div className="rounded-lg overflow-hidden">
+              <MapView />
             </div>
-            <div className="mt-4 sm:mt-6 text-center">
+            <div className="mt-4 text-center">
               <Link 
-                to="/statistics" 
+                to="/map" 
                 className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center text-sm sm:text-base touch-manipulation"
               >
-                Voir toutes les statistiques
+                Voir la carte complète
                 <ArrowRight size={16} className="ml-1" />
               </Link>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
+
+        {/* Statistics Section - ADMIN SEULEMENT */}
+        {isAuthenticated && user?.role === 'admin' && (
+          <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Statistiques</h2>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h3 className="text-lg font-semibold mb-2">Impact collectif</h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+                Ensemble, nous faisons la différence pour la propreté de Pita.
+              </p>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {[
+                  { value: stats?.signalements ?? '...', label: 'Signalements' },
+                  { value: stats?.resolus ?? '...', label: 'Problèmes résolus' },
+                  { value: stats?.utilisateurs ?? '...', label: 'Utilisateurs actifs' },
+                  { value: stats?.quartiers ?? '...', label: 'Quartiers couverts' },
+                ].map((stat, index) => (
+                  <div key={index} className="text-center p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <p className="text-xl sm:text-2xl font-bold text-green-700">{stat.value}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 sm:mt-6 text-center">
+                <Link 
+                  to="/statistics" 
+                  className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center text-sm sm:text-base touch-manipulation"
+                >
+                  Voir toutes les statistiques
+                  <ArrowRight size={16} className="ml-1" />
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Section Mes Contributions - CITOYENS CONNECTÉS */}
+        {isAuthenticated && user?.role === 'citizen' && (
+          <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Votre Impact</h2>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h3 className="text-lg font-semibold mb-2">Vos contributions</h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+                Merci pour votre engagement envers un environnement plus propre !
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
+                  <p className="text-xl sm:text-2xl font-bold text-green-700">{user?.points || 0}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Points gagnés</p>
+                </div>
+                <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-lg">
+                  <p className="text-xl sm:text-2xl font-bold text-blue-700">🏆</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Éco-citoyen</p>
+                </div>
+              </div>
+              <div className="mt-4 sm:mt-6 text-center">
+                <Link 
+                  to="/my-reports" 
+                  className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center text-sm sm:text-base touch-manipulation"
+                >
+                  Voir mes signalements
+                  <ArrowRight size={16} className="ml-1" />
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Call to Action */}
         <section className="bg-green-600 text-white rounded-lg p-6 sm:p-8 mb-6 sm:mb-8 lg:mb-10">
