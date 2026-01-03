@@ -5,12 +5,26 @@ import { v4 as uuidv4 } from 'uuid';
 
 class CloudinaryService {
     constructor() {
-        // Configuration Cloudinary
-        cloudinary.config({
-            cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'demo',
-            api_key: process.env.CLOUDINARY_API_KEY || 'demo',
-            api_secret: process.env.CLOUDINARY_API_SECRET || 'demo'
-        });
+        // Configuration Cloudinary avec fallback
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'demo';
+        const apiKey = process.env.CLOUDINARY_API_KEY || 'demo';
+        const apiSecret = process.env.CLOUDINARY_API_SECRET || 'demo';
+        
+        // Utiliser un compte Cloudinary de démonstration si pas configuré
+        if (cloudName === 'demo' || cloudName === 'votre_cloud_name') {
+            console.log('⚠️ Cloudinary non configuré, utilisation du compte de démonstration');
+            cloudinary.config({
+                cloud_name: 'demo',
+                api_key: '123456789012345',
+                api_secret: 'abcdefghijklmnopqrstuvwxyz123456'
+            });
+        } else {
+            cloudinary.config({
+                cloud_name: cloudName,
+                api_key: apiKey,
+                api_secret: apiSecret
+            });
+        }
     }
 
     // Formats d'images supportés

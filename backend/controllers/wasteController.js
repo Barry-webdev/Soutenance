@@ -1,7 +1,7 @@
 import WasteReport from '../models/wasteReportModel.js';
 import User from '../models/userModel.js';
 import { logManualAudit } from '../middlewares/auditMiddleware.js';
-import CloudinaryService from '../services/cloudinaryService.js';
+import HybridImageService from '../services/hybridImageService.js';
 import NotificationService from '../services/notification.js';
 import GamificationService from '../services/gamificationService.js';
 
@@ -16,14 +16,9 @@ export const createWasteReport = async (req, res) => {
         // Traiter l'image si elle existe
         if (req.file) {
             try {
-                // Utiliser Cloudinary si configuré, sinon stockage local
-                if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'votre_cloud_name') {
-                    images = await CloudinaryService.processImage(req.file.buffer, req.file.originalname);
-                } else {
-                    // Fallback vers le service local (temporaire)
-                    const ImageService = (await import('../services/imageService.js')).default;
-                    images = await ImageService.processImage(req.file.buffer, req.file.originalname);
-                }
+                console.log('📸 Traitement de l\'image...');
+                images = await HybridImageService.processImage(req.file.buffer, req.file.originalname);
+                console.log('✅ Image traitée avec succès:', images.original?.url);
             } catch (imageError) {
                 return res.status(400).json({
                     success: false,
@@ -319,7 +314,7 @@ export const deleteWasteReport = async (req, res) => {
 
         // Supprimer les images associées
         if (wasteReport.images) {
-            await CloudinaryService.deleteImages(wasteReport.images);
+            await HybridImageService.deleteImages(wasteReport.images);
         }
 
         // 🔔 NOTIFICATION: Notification à l'utilisateur si son signalement est supprimé
