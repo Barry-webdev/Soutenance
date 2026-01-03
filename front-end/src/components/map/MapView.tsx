@@ -31,10 +31,36 @@ const MapView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [countdown, setCountdown] = useState<number>(30);
+  const [hasError, setHasError] = useState(false);
+
+  // Error boundary effect
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('❌ Erreur JavaScript dans MapView:', error);
+      setHasError(true);
+      setError('Erreur de rendu de la carte');
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('❌ Promise rejetée dans MapView:', event.reason);
+      setHasError(true);
+      setError('Erreur de chargement des données');
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   // Fonction pour charger les signalements
   const fetchReports = useCallback(async () => {
     try {
+      console.log('🗺️ Chargement des signalements pour la carte...');
+      
       const token = localStorage.getItem('token');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
@@ -48,19 +74,24 @@ const MapView: React.FC = () => {
         headers
       });
       
+      console.log('📊 Réponse API carte:', response.status, response.statusText);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Signalements chargés:', data.data?.length || 0);
         setReports(data.data || []);
         setLastUpdate(new Date());
         setCountdown(30); // Reset countdown
         setError(null);
       } else {
-        console.log('Pas de signalements ou erreur API');
+        console.log('⚠️ Pas de signalements ou erreur API');
         setReports([]);
+        setError('Impossible de charger les signalements');
       }
     } catch (error: any) {
-      console.error('Erreur:', error);
-      setError('Erreur de chargement');
+      console.error('❌ Erreur chargement carte:', error);
+      setError('Erreur de connexion au serveur');
+      setReports([]);
     } finally {
       setLoading(false);
     }
@@ -116,22 +147,48 @@ const MapView: React.FC = () => {
   // Fonction pour actualiser manuellement
   const handleRefresh = () => {
     setLoading(true);
+    setError(null);
     fetchReports();
   };
 
+  // Error boundary UI
+  if (hasError) {
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-red-600 mb-4">Erreur de chargement</h2>
+          <p className="text-gray-600 mb-4">Une erreur s'est produite lors du chargement de la carte.</p>
+          <p className="text-sm text-gray-500 mb-4">{error}</p>
+          <button 
+            onClick={() => {
+              setHasError(false);
+              setError(null);
+              setLoading(true);
+              fetchReports();
+            }}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="card">
+      <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="text-center text-gray-600 py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-          Chargement de la carte...
+          <p>Chargement de la carte...</p>
+          <p className="text-sm text-gray-500 mt-2">Récupération des signalements en cours</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="card">
+    <div className="bg-white rounded-lg shadow-lg p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Carte des signalements</h2>
         <div className="flex items-center gap-3">
@@ -154,6 +211,22 @@ const MapView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Message d'erreur */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-red-700">
+            <span>⚠️</span>
+            <span>{error}</span>
+            <button 
+              onClick={handleRefresh}
+              className="ml-auto text-red-600 hover:text-red-800 underline"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Indicateur d'actualisation automatique */}
       <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg">
@@ -184,6 +257,7 @@ const MapView: React.FC = () => {
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
+              title="Carte des signalements - Pita, Guinée"
             />
           </div>
         </div>
@@ -239,6 +313,10 @@ const MapView: React.FC = () => {
                             window.open(buildImageUrl(report.images.original.url), '_blank');
                           }
                         }}
+                        onError={(e) => {
+                          console.error('Erreur chargement image:', report.images?.thumbnail?.url);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                       <p className="text-xs text-gray-500 mt-1 italic">
                         📸 Cliquez pour agrandir
@@ -257,7 +335,7 @@ const MapView: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span>Signalé par:</span>
-                      <span className="font-medium">{report.userId.name}</span>
+                      <span className="font-medium">{report.userId?.name || 'Utilisateur inconnu'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Date:</span>

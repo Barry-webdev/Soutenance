@@ -1,9 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import MapView from '../components/map/MapView';
 
 const MapPage: React.FC = () => {
   const { user } = useAuth();
+  const [hasError, setHasError] = useState(false);
+
+  // Error boundary effect
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('❌ Erreur JavaScript dans MapPage:', error);
+      setHasError(true);
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('❌ Promise rejetée dans MapPage:', event.reason);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur de chargement</h1>
+          <p className="text-gray-600 mb-4">Une erreur s'est produite lors du chargement de la carte.</p>
+          <button 
+            onClick={() => {
+              setHasError(false);
+              window.location.reload();
+            }}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Recharger la page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -25,9 +67,9 @@ const MapPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Carte avec l'ancien composant fonctionnel */}
+      {/* Carte avec gestion d'erreur */}
       <div className="p-4">
-        <div className="bg-white rounded-lg shadow-lg" style={{ height: '80vh' }}>
+        <div style={{ height: '80vh' }}>
           <MapView />
         </div>
       </div>
