@@ -1,36 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { buildApiUrl } from '../config/api';
+import { buildApiUrl, buildImageUrl } from '../config/api';
+import { useQuery } from "@tanstack/react-query";
 
+// Interfaces
 interface WasteReport {
   _id: string;
+  createdAt: string;
+  updatedAt: string;
   description: string;
   wasteType: string;
   status: 'pending' | 'collected' | 'not_collected';
   location: {
     lat: number;
     lng: number;
-    address?: string;
   };
   images?: {
-    original?: { url: string; filename?: string };
-    medium?: { url: string; filename?: string };
-    thumbnail?: { url: string; filename?: string };
+    original?: { url: string; filename: string };
+    thumbnail?: { url: string; filename: string };
+    medium?: { url: string; filename: string };
   } | null;
   userId: {
     _id: string;
     name: string;
     email: string;
   };
-  createdAt: string;
-  updatedAt?: string;
 }
 
 const AdminPage: React.FC = () => {
   const { user } = useAuth();
-  const [error, setError] = useState<string | null>(null);
-  const [reports, setReports] = useState<WasteReport[]>([]);
-  const [reportsLoading, setReportsLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState<WasteReport | null>(null);
 
   // Vérifier que l'utilisateur est admin ou super admin
   if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
@@ -44,120 +43,343 @@ const AdminPage: React.FC = () => {
     );
   }
 
-  // Charger les signalements avec gestion d'erreur
-  const fetchReports = async () => {
-    try {
-      console.log('🔄 Début chargement signalements...');
-      setReportsLoading(true);
-      setError(null);
-      
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Token manquant');
-      }
+  // Fetch Signalements (copié de l'ancien AdminPanel)
+  const fetchReports = async (): Promise<WasteReport[]> => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
+    }
 
-      console.log('📡 Appel API...');
-      const response = await fetch(buildApiUrl('/api/waste'), {
-        headers: { 'Authorization': `Bearer ${token}` }
+    const response = await fetch(buildApiUrl("/api/waste"), {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erreur API:', response.status, errorText);
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Données reçues:', data);
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Erreur inconnue');
+    }
+    
+    return data.data?.wasteReports || [];
+  };
+
+  // useQuery pour les signalements
+  const {
+    data: reports = [],
+    isLoading: isLoadingReports,
+    error: reportsError,
+  } = useQuery({ queryKey: ['waste_reports'], queryFn: fetchReports });
+
+  // Fonction de mise à jour du statut (copié de l'ancien AdminPanel)
+  const updateReportStatus = async (reportId: string, newStatus: WasteReport['status']) => {
+    try {
+      const response = await fetch(buildApiUrl(`/api/waste/${reportId}/status`), {
+        method: "PATCH",
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status: newStatus }),
       });
 
-      console.log('📊 Réponse reçue:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error("Erreur lors de la mise à jour du statut");
 
-      const data = await response.json();
-      console.log('✅ Données reçues:', data);
+      const updated = await response.json();
       
-      const reportsData = data.data?.wasteReports || data.data || [];
-      console.log('📋 Signalements extraits:', reportsData.length);
+      if (updated.success && updated.data) {
+        setSelectedReport(updated.data);
+        window.location.reload(); // Rafraîchir la liste
+      }
       
-      setReports(reportsData);
+      alert("Statut mis à jour avec succès !");
     } catch (error) {
-      console.error('❌ Erreur:', error);
-      setError(error instanceof Error ? error.message : 'Erreur inconnue');
-    } finally {
-      setReportsLoading(false);
-      console.log('🏁 Chargement terminé');
+      console.error(error);
+      alert("Échec de la mise à jour du statut !");
     }
   };
 
-  useEffect(() => {
-    console.log('🚀 AdminPage montée, utilisateur:', user);
-    fetchReports();
-  }, []);
-
-  // Affichage avec gestion d'erreur
-  try {
+  // Affichage conditionnel
+  if (isLoadingReports) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h1 className="text-2xl font-bold mb-4">AdminPage - Debug</h1>
-            
-            <div className="space-y-4">
-              <div>
-                <h2 className="font-semibold">Utilisateur connecté :</h2>
-                <p>Nom: {user?.name}</p>
-                <p>Rôle: {user?.role}</p>
-                <p>Email: {user?.email}</p>
-              </div>
-
-              <div>
-                <h2 className="font-semibold">État du chargement :</h2>
-                <p>Chargement: {reportsLoading ? 'En cours...' : 'Terminé'}</p>
-                <p>Nombre de signalements: {reports.length}</p>
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded p-4">
-                  <h2 className="font-semibold text-red-800">Erreur :</h2>
-                  <p className="text-red-700">{error}</p>
-                </div>
-              )}
-
-              {!reportsLoading && !error && reports.length > 0 && (
-                <div>
-                  <h2 className="font-semibold">Premier signalement :</h2>
-                  <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
-                    {JSON.stringify(reports[0], null, 2)}
-                  </pre>
-                </div>
-              )}
-
-              <div>
-                <button 
-                  onClick={fetchReports}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Recharger les signalements
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  } catch (renderError) {
-    console.error('💥 Erreur de rendu:', renderError);
-    return (
-      <div className="min-h-screen bg-red-50 flex items-center justify-center">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur de rendu</h1>
-          <p className="text-red-700 mb-4">
-            {renderError instanceof Error ? renderError.message : 'Erreur inconnue'}
-          </p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Recharger la page
-          </button>
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p>Chargement des signalements...</p>
         </div>
       </div>
     );
   }
+  
+  if (reportsError) {
+    const error = reportsError as Error;
+    const isAuthError = error.message.includes('Session expirée') || error.message.includes('authentification manquant');
+    
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 m-4">
+        <h3 className="text-red-800 font-semibold mb-2">
+          {isAuthError ? 'Problème d\'authentification' : 'Erreur de chargement'}
+        </h3>
+        <p className="text-red-700 mb-2">{error.message}</p>
+        
+        {isAuthError ? (
+          <div className="flex gap-2">
+            <button 
+              onClick={() => window.location.href = '/login'} 
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Se reconnecter
+            </button>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Réessayer
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Administration {user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+          </h1>
+          <p className="text-gray-600 mt-2">Gestion des signalements</p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold">Signalements ({reports.length})</h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr className="border-b">
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Date</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">Description</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">Utilisateur</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Type</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Statut</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Image</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.length === 0 ? (
+                  <tr><td colSpan={7} className="text-center py-4">Aucun signalement</td></tr>
+                ) : (
+                  reports.map(report => (
+                    <tr key={report._id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        {new Date(report.createdAt).toLocaleDateString('fr-FR')}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">
+                        {report.description.length > 50 ? `${report.description.substring(0, 50)}...` : report.description}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">
+                        {report.userId.name}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                          {report.wasteType}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          report.status === 'collected' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {report.status === 'pending' ? 'En attente' :
+                           report.status === 'collected' ? 'Collecté' : 'Non collecté'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        {report.images?.thumbnail?.url ? (
+                          <img 
+                            src={buildImageUrl(report.images.thumbnail.url)} 
+                            alt="Aperçu" 
+                            className="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-80"
+                            onClick={() => setSelectedReport(report)}
+                          />
+                        ) : (
+                          <span className="text-gray-400 text-xs">Pas d'image</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <button 
+                          onClick={() => setSelectedReport(report)} 
+                          className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                        >
+                          Voir
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Modale (copié de l'ancien AdminPanel) */}
+          {selectedReport && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto p-4 sm:p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-semibold">Détails du signalement</h3>
+                  <button 
+                    onClick={() => setSelectedReport(null)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Informations du signalement */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Informations générales</h4>
+                      <div className="space-y-2">
+                        <p><strong>Description:</strong> {selectedReport.description}</p>
+                        <p><strong>Type de déchet:</strong> 
+                          <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                            {selectedReport.wasteType}
+                          </span>
+                        </p>
+                        <p><strong>Statut:</strong> 
+                          <span className={`ml-2 px-2 py-1 rounded-full text-sm ${
+                            selectedReport.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            selectedReport.status === 'collected' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {selectedReport.status === 'pending' ? 'En attente' :
+                             selectedReport.status === 'collected' ? 'Collecté' : 'Non collecté'}
+                          </span>
+                        </p>
+                        <p><strong>Date de création:</strong> {new Date(selectedReport.createdAt).toLocaleString('fr-FR')}</p>
+                        <p><strong>Dernière mise à jour:</strong> {new Date(selectedReport.updatedAt).toLocaleString('fr-FR')}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Utilisateur</h4>
+                      <div className="space-y-2">
+                        <p><strong>Nom:</strong> {selectedReport.userId.name}</p>
+                        <p><strong>Email:</strong> {selectedReport.userId.email}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Localisation</h4>
+                      <div className="space-y-2">
+                        <p><strong>Latitude:</strong> {selectedReport.location.lat}</p>
+                        <p><strong>Longitude:</strong> {selectedReport.location.lng}</p>
+                        <p><strong>Coordonnées:</strong> {selectedReport.location.lat.toFixed(6)}, {selectedReport.location.lng.toFixed(6)}</p>
+                        
+                        {/* Bouton de navigation */}
+                        <div className="mt-2">
+                          <button 
+                            onClick={() => {
+                              const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedReport.location.lat},${selectedReport.location.lng}`;
+                              window.open(url, '_blank');
+                            }}
+                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm flex items-center gap-1"
+                          >
+                            🚗 Obtenir l'itinéraire
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions de mise à jour du statut */}
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Actions</h4>
+                      <div className="flex flex-wrap gap-2">
+                        <button 
+                          onClick={() => updateReportStatus(selectedReport._id, 'pending')} 
+                          className="px-3 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
+                        >
+                          Marquer en attente
+                        </button>
+                        <button 
+                          onClick={() => updateReportStatus(selectedReport._id, 'collected')} 
+                          className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                        >
+                          Marquer collecté
+                        </button>
+                        <button 
+                          onClick={() => updateReportStatus(selectedReport._id, 'not_collected')} 
+                          className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                        >
+                          Marquer non collecté
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Image */}
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-2">Image du signalement</h4>
+                    {selectedReport.images?.original?.url ? (
+                      <div className="space-y-2">
+                        <img 
+                          src={buildImageUrl(selectedReport.images.original.url)} 
+                          alt="Signalement" 
+                          className="w-full h-64 object-cover rounded-lg border cursor-pointer hover:opacity-90"
+                          onClick={() => {
+                            window.open(buildImageUrl(selectedReport.images.original.url), '_blank');
+                          }}
+                        />
+                        <p className="text-sm text-gray-600">
+                          Fichier: {selectedReport.images.original.filename}
+                        </p>
+                        <p className="text-xs text-gray-500 italic">
+                          💡 Cliquez sur l'image pour l'agrandir
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="w-full h-64 bg-gray-100 rounded-lg border flex items-center justify-center">
+                        <p className="text-gray-500">Aucune image disponible</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default AdminPage;
