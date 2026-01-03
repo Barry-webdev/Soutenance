@@ -87,28 +87,31 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch(buildApiUrl('/api/stats/dashboard'), {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+    // Charger les stats SEULEMENT pour les admins
+    if (isAuthenticated && user?.role === 'admin') {
+      const fetchStats = async () => {
+        try {
+          const response = await fetch(buildApiUrl('/api/stats/dashboard'), {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setStats(data.data);
+          } else {
+            console.warn('⚠️ Impossible de charger les statistiques');
           }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data.data);
-        } else {
-          console.warn('⚠️ Impossible de charger les statistiques');
+        } catch (error) {
+          console.error("❌ Erreur de chargement des statistiques :", error);
+          setError('Erreur de chargement des statistiques');
         }
-      } catch (error) {
-        console.error("❌ Erreur de chargement des statistiques :", error);
-        setError('Erreur de chargement des statistiques');
-      }
-    };
-    
-    fetchStats();
-  }, []);
+      };
+      
+      fetchStats();
+    }
+  }, [isAuthenticated, user?.role]);
 
   // Gestion d'erreur pour éviter que la page disparaisse
   if (error) {
@@ -283,20 +286,22 @@ const HomePage: React.FC = () => {
         {/* Section Mes Contributions - CITOYENS CONNECTÉS */}
         {isAuthenticated && user?.role === 'citizen' && (
           <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Votre Impact</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Votre Espace Citoyen</h2>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
-              <h3 className="text-lg font-semibold mb-2">Vos contributions</h3>
+              <h3 className="text-lg font-semibold mb-2">Merci pour votre engagement !</h3>
               <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-                Merci pour votre engagement envers un environnement plus propre !
+                Chaque signalement compte pour un environnement plus propre. Continuez à faire la différence !
               </p>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
-                  <p className="text-xl sm:text-2xl font-bold text-green-700">{user?.points || 0}</p>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Points gagnés</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-3xl mb-2">🌱</div>
+                  <p className="text-sm font-medium text-green-700">Éco-Citoyen Actif</p>
+                  <p className="text-xs text-gray-600 mt-1">Merci pour vos contributions</p>
                 </div>
-                <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-lg">
-                  <p className="text-xl sm:text-2xl font-bold text-blue-700">🏆</p>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Éco-citoyen</p>
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-3xl mb-2">📍</div>
+                  <p className="text-sm font-medium text-blue-700">Signalements Géolocalisés</p>
+                  <p className="text-xs text-gray-600 mt-1">Aide précieuse aux équipes</p>
                 </div>
               </div>
               <div className="mt-4 sm:mt-6 text-center">
