@@ -50,9 +50,10 @@
 //   }, [user, navigate]);
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Lock, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -61,6 +62,17 @@ const LoginPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const { login, isLoading, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ✅ Gérer les messages et email depuis l'inscription
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccess(location.state.message);
+    }
+    if (location.state?.email) {
+      setEmail(location.state.email);
+    }
+  }, [location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,28 +80,25 @@ const LoginPage: React.FC = () => {
     setSuccess(null);
 
     try {
-      // 🔥 Utiliser la fonction login du contexte
-      await login(email, password);
+      // 🚀 Utiliser la fonction login du contexte et récupérer les données
+      const result = await login(email, password);
       setSuccess('Connexion réussie ! Redirection...');
+      
+      // 🚀 Redirection immédiate basée sur le rôle
+      const redirectTo = result.user.role === 'admin' ? '/admin' : '/report';
+      navigate(redirectTo, { replace: true });
     } catch (err: any) {
       setError(err.message || 'Erreur de connexion au serveur.');
     }
   };
 
-  // Redirection après authentification
+  // ✅ Supprimer le useEffect de redirection car on redirige directement dans handleSubmit
   // useEffect(() => {
   //   if (user) {
-  //     const redirectTo = user.role === 'admin' ? '/admin' : '/report';
-  //     navigate(redirectTo);
+  //     const redirectTo = user.role === "admin" ? "/admin" : "/report";
+  //     navigate(redirectTo, { replace: true }); // 🔄 redirection immédiate
   //   }
   // }, [user, navigate]);
-
- useEffect(() => {
-  if (user) {
-    const redirectTo = user.role === "admin" ? "/admin" : "/report";
-    navigate(redirectTo, { replace: true }); // 🔄 redirection immédiate
-  }
-}, [user, navigate]);
 
 
   return (

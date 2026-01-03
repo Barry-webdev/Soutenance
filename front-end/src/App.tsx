@@ -21,7 +21,6 @@ import CollaborationPage from './pages/CollaborationPage';
 import NotFoundPage from './pages/NotFundPage';
 import ImageTestPage from './pages/ImageTestPage';
 import StatsDebugPage from './pages/StatsDebugPage';
-import CollaborationPage from "./pages/CollaborationPage";
 import './App.css';
 import {QueryClient, QueryClientProvider } from "@tanstack/react-query"
 

@@ -52,11 +52,14 @@ class NotificationService {
             const admins = await User.find({ role: 'admin' }).select('_id name email');
             const user = await User.findById(wasteReport.userId).select('name email');
             
+            // Vérifier que wasteReport et description existent
+            const description = wasteReport?.description || 'Signalement sans description';
+            
             // Créer les notifications in-app
             const notifications = admins.map(admin => ({
                 userId: admin._id,
                 title: '🚨 Nouveau Signalement de Déchet',
-                message: `Un citoyen a signalé des déchets: "${wasteReport.description.substring(0, 50)}..."`,
+                message: `Un citoyen a signalé des déchets: "${description.substring(0, 50)}..."`,
                 type: 'waste_report_created',
                 relatedEntity: {
                     entityType: 'WasteReport',
@@ -75,7 +78,7 @@ class NotificationService {
                 webSocketService.sendNotificationToAdmins({
                     type: 'new_waste_report',
                     title: '🚨 Nouveau Signalement',
-                    message: `Signalement de ${wasteReport.wasteType} par ${user?.name}`,
+                    message: `Signalement de ${wasteReport.wasteType || 'déchet'} par ${user?.name || 'utilisateur'}`,
                     data: wasteReport
                 });
             }
@@ -195,10 +198,11 @@ class NotificationService {
      */
     static async notifyUserWasteReportDeleted(userId, wasteReport) {
         try {
+            const description = wasteReport?.description || 'Signalement sans description';
             const notification = await this.createNotification({
                 userId: userId,
                 title: '🗑️ Signalement Supprimé',
-                message: `Votre signalement "${wasteReport.description.substring(0, 50)}..." a été supprimé par un administrateur`,
+                message: `Votre signalement "${description.substring(0, 50)}..." a été supprimé par un administrateur`,
                 type: 'waste_report_status_updated',
                 priority: 'medium',
                 actionUrl: '/my-reports'

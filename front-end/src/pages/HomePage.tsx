@@ -84,6 +84,7 @@ import WelcomeMessage from '../components/common/WelcomeMessage';
 const HomePage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const [stats, setStats] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -93,14 +94,26 @@ const HomePage: React.FC = () => {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
-        const data = await response.json();
-        setStats(data.data);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data.data);
+        } else {
+          console.warn('⚠️ Impossible de charger les statistiques');
+        }
       } catch (error) {
         console.error("❌ Erreur de chargement des statistiques :", error);
+        setError('Erreur de chargement des statistiques');
       }
     };
+    
     fetchStats();
   }, []);
+
+  // Gestion d'erreur pour éviter que la page disparaisse
+  if (error) {
+    console.warn('⚠️ Erreur sur HomePage:', error);
+  }
 
   return (
     <div className="min-h-screen">
@@ -111,9 +124,9 @@ const HomePage: React.FC = () => {
           <section className="py-4 sm:py-6 mb-4 sm:mb-6">
             <WelcomeMessage 
               user={{
-                name: user.name,
-                role: user.role,
-                points: user.points
+                name: user.name || 'Utilisateur',
+                role: user.role || 'citizen',
+                points: user.points || 0
               }}
             />
           </section>
@@ -163,6 +176,10 @@ const HomePage: React.FC = () => {
                   src={prefectureImage}
                   alt="Illustration Waste Management"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.warn('⚠️ Erreur chargement image prefecture');
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               </div>
             </div>

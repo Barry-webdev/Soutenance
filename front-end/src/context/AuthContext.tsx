@@ -137,6 +137,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading: false,
         error: null,
       });
+
+      // 🚀 Retourner les données utilisateur pour redirection immédiate
+      return { user, token };
     } catch (error) {
       setAuthState(prevState => ({
         ...prevState,
@@ -164,23 +167,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.error || 'Erreur lors de l\'inscription');
       }
 
-      const { token, user } = data.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      setAuthState({
-        user,
-        isAuthenticated: true,
+      // ✅ NE PAS connecter automatiquement après inscription
+      // L'utilisateur doit se connecter manuellement
+      setAuthState(prevState => ({
+        ...prevState,
         isLoading: false,
         error: null,
-      });
+      }));
+
+      // Retourner les données pour confirmation
+      return { success: true, message: 'Inscription réussie ! Veuillez vous connecter.' };
     } catch (error) {
       setAuthState(prevState => ({
         ...prevState,
         isLoading: false,
         error: error.message || 'Erreur lors de l\'inscription',
       }));
+      throw error;
     }
   };
 

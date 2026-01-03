@@ -28,14 +28,19 @@ const RegisterPage: React.FC = () => {
     }
     
     try {
-      // Utiliser la fonction register du contexte d'authentification
+      // ✅ Inscription sans connexion automatique
       await register(email, password, name);
       
-      setSuccess('Inscription réussie ! Redirection en cours...');
+      setSuccess('Inscription réussie ! Redirection vers la connexion...');
       
-      // Redirection automatique après inscription réussie
+      // ✅ Redirection vers la page de connexion après inscription
       setTimeout(() => {
-        navigate('/report');
+        navigate('/login', { 
+          state: { 
+            message: 'Inscription réussie ! Veuillez vous connecter avec vos identifiants.',
+            email: email // Pré-remplir l'email sur la page de connexion
+          }
+        });
       }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'inscription. Veuillez réessayer.');
