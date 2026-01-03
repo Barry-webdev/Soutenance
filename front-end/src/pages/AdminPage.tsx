@@ -81,10 +81,21 @@ const AdminPage: React.FC = () => {
 
   // useQuery pour les signalements
   const {
-    data: reports = [],
+    data: reportsRaw = [],
     isLoading: isLoadingReports,
     error: reportsError,
   } = useQuery({ queryKey: ['waste_reports'], queryFn: fetchReports });
+
+  // Filtrer les signalements valides (éviter les crashes)
+  const reports = reportsRaw.filter(report => 
+    report && 
+    report._id && 
+    report.description && 
+    report.wasteType &&
+    report.location &&
+    typeof report.location.lat === 'number' &&
+    typeof report.location.lng === 'number'
+  );
 
   // Fonction de mise à jour du statut (copié de l'ancien AdminPanel)
   const updateReportStatus = async (reportId: string, newStatus: WasteReport['status']) => {
@@ -205,7 +216,7 @@ const AdminPage: React.FC = () => {
                         {report.description.length > 50 ? `${report.description.substring(0, 50)}...` : report.description}
                       </td>
                       <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">
-                        {report.userId.name}
+                        {report.userId?.name || 'Utilisateur supprimé'}
                       </td>
                       <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
@@ -293,8 +304,8 @@ const AdminPage: React.FC = () => {
                     <div>
                       <h4 className="font-semibold text-gray-700 mb-2">Utilisateur</h4>
                       <div className="space-y-2">
-                        <p><strong>Nom:</strong> {selectedReport.userId.name}</p>
-                        <p><strong>Email:</strong> {selectedReport.userId.email}</p>
+                        <p><strong>Nom:</strong> {selectedReport.userId?.name || 'Utilisateur supprimé'}</p>
+                        <p><strong>Email:</strong> {selectedReport.userId?.email || 'Email non disponible'}</p>
                       </div>
                     </div>
 
