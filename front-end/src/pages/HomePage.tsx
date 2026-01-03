@@ -235,8 +235,9 @@ const HomePage: React.FC = () => {
         {/* Map Preview Section - SUPPRIMÉ COMPLÈTEMENT */}
         {/* Plus de carte des signalements sur l'accueil pour personne */}
 
-        {/* Statistics Section - ADMIN SEULEMENT - VÉRIFICATION RENFORCÉE */}
-        {isAuthenticated && user && user.role && user.role === 'admin' && (
+        {/* SECTION FORCÉE - MASQUAGE TOTAL POUR CITOYENS */}
+        {/* Statistics Section - ADMIN SEULEMENT - CONDITION ULTRA STRICTE */}
+        {false && isAuthenticated && user && user.role && user.role === 'admin' && (
           <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
             <div className="bg-red-100 border border-red-500 p-2 mb-4 text-red-800 text-sm">
               🔍 DEBUG: Cette section ne devrait être visible QUE pour les admins
