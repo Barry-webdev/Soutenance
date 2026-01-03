@@ -94,12 +94,6 @@ const Navbar: React.FC = () => {
         {isAuthenticated && user?.role === 'citizen' && (
           <>
             <Link
-              to="/my-reports"
-              className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              📋 Mes signalements
-            </Link>
-            <Link
               to="/collaboration"
               className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium"
             >
@@ -114,7 +108,7 @@ const Navbar: React.FC = () => {
           </>
         )}
 
-        {/* Navigation pour ADMINS */}
+        {/* Navigation pour ADMINS SIMPLES */}
         {isAuthenticated && user?.role === 'admin' && (
           <>
             <Link to="/map" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
@@ -123,14 +117,32 @@ const Navbar: React.FC = () => {
             <Link to="/statistics" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
               Statistiques
             </Link>
-            <Link to="/badges" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
-              Badges
+          </>
+        )}
+
+        {/* Navigation pour SUPER ADMIN */}
+        {isAuthenticated && user?.role === 'super_admin' && (
+          <>
+            <Link to="/map" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Carte
             </Link>
-            <Link to="/leaderboard" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
-              Classement
+            <Link to="/statistics" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Statistiques
             </Link>
-            <Link to="/search" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
-              Recherche
+            <Link to="/collaboration" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              🤝 Collaborations
+            </Link>
+            <Link to="/admin" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              👥 Gestion
+            </Link>
+          </>
+        )}
+
+        {/* Navigation pour PARTNERS */}
+        {isAuthenticated && user?.role === 'partner' && (
+          <>
+            <Link to="/map" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
+              Carte
             </Link>
           </>
         )}
@@ -175,8 +187,12 @@ const Navbar: React.FC = () => {
             <div className="relative group">
               <button className="flex items-center text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium transition-opacity duration-500 ease-in">
                 <span className="mr-1 transition-opacity duration-500 ease-in opacity-100">
-                  {user?.role === 'admin'
+                  {user?.role === 'super_admin'
+                    ? 'Super Admin'
+                    : user?.role === 'admin'
                     ? 'Admin'
+                    : user?.role === 'partner'
+                    ? 'Partenaire'
                     : `${user?.name?.split(' ')[0] || 'Utilisateur'}`}
                 </span>
                 <User size={18} />
@@ -188,7 +204,7 @@ const Navbar: React.FC = () => {
                 <Link to="/help" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                   Aide
                 </Link>
-                {user?.role === 'admin' && (
+                {(user?.role === 'admin' || user?.role === 'super_admin') && (
                   <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                     Administration
                   </Link>
@@ -258,7 +274,7 @@ const Navbar: React.FC = () => {
           </>
         )}
 
-        {/* Menu mobile pour ADMINS */}
+        {/* Menu mobile pour ADMINS SIMPLES */}
         {isAuthenticated && user?.role === 'admin' && (
           <>
             <Link
@@ -279,31 +295,57 @@ const Navbar: React.FC = () => {
                 <BarChart2 size={18} className="mr-2" />Statistiques
               </div>
             </Link>
+          </>
+        )}
+
+        {/* Menu mobile pour SUPER ADMIN */}
+        {isAuthenticated && user?.role === 'super_admin' && (
+          <>
             <Link
-              to="/badges"
+              to="/map"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
               onClick={toggleMenu}
             >
               <div className="flex items-center">
-                <Trophy size={18} className="mr-2" />Badges
+                <MapPin size={18} className="mr-2" />Carte
               </div>
             </Link>
             <Link
-              to="/leaderboard"
+              to="/statistics"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
               onClick={toggleMenu}
             >
               <div className="flex items-center">
-                <Medal size={18} className="mr-2" />Classement
+                <BarChart2 size={18} className="mr-2" />Statistiques
               </div>
             </Link>
             <Link
-              to="/search"
+              to="/collaboration"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">🤝 Collaborations</div>
+            </Link>
+            <Link
+              to="/admin"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
+              onClick={toggleMenu}
+            >
+              <div className="flex items-center">👥 Gestion</div>
+            </Link>
+          </>
+        )}
+
+        {/* Menu mobile pour PARTNERS */}
+        {isAuthenticated && user?.role === 'partner' && (
+          <>
+            <Link
+              to="/map"
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
               onClick={toggleMenu}
             >
               <div className="flex items-center">
-                <Search size={18} className="mr-2" />Recherche
+                <MapPin size={18} className="mr-2" />Carte
               </div>
             </Link>
           </>
@@ -335,7 +377,7 @@ const Navbar: React.FC = () => {
                 <User size={18} className="mr-2" />Profil
               </div>
             </Link>
-            {user?.role === 'admin' && (
+            {(user?.role === 'admin' || user?.role === 'super_admin') && (
               <Link
                 to="/admin"
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"

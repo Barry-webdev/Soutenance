@@ -5,15 +5,15 @@ import {
     updateCollaborationRequestStatus 
 } from '../controllers/collaborationController.js';
 import { validateCollaborationRequest } from '../middlewares/validationMiddleware.js';
-import { authenticate, requireAdmin } from '../middlewares/authMiddleware.js';
+import { authenticate, requireSuperAdmin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 // Soumission publique (pas d'authentification requise)
 router.post('/', validateCollaborationRequest, submitCollaborationRequest);
 
-// Routes admin seulement
-router.get('/', authenticate, requireAdmin, getCollaborationRequests);
-router.patch('/:id/status', authenticate, requireAdmin, updateCollaborationRequestStatus);
+// Routes super admin seulement
+router.get('/', authenticate, requireSuperAdmin, getCollaborationRequests);
+router.patch('/:id/status', authenticate, requireSuperAdmin, updateCollaborationRequestStatus);
 
 export default router;

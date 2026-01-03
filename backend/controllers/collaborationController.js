@@ -17,24 +17,8 @@ export const submitCollaborationRequest = async (req, res) => {
             type
         });
 
-        // 🔔 NOTIFICATION: Alertes aux admins pour nouvelle demande
-        await NotificationService.notifyAdminsNewCollaboration(collaborationRequest);
-
-        // 🔔 NOTIFICATION: Accusé de réception à l'organisation
-        await NotificationService.notifyOrganizationRequestReceived(collaborationRequest);
-
-        // Audit pour demande de collaboration soumise
-        await logManualAudit(
-            'COLLABORATION_REQUEST',
-            { _id: 'public', email: email, role: 'public' },
-            `Nouvelle demande de collaboration soumise: ${organizationName}`,
-            { 
-                organization: organizationName,
-                contact: contactPerson,
-                type: type,
-                requestId: collaborationRequest._id 
-            }
-        );
+        // Pas d'audit pour les soumissions publiques (pour éviter les erreurs)
+        console.log(`📝 Nouvelle demande de collaboration: ${organizationName} (${email})`);
 
         res.status(201).json({ 
             success: true, 
@@ -123,7 +107,7 @@ export const getCollaborationRequests = async (req, res) => {
 };
 
 /**
- * Mettre à jour le statut d'une demande de collaboration (Admin)
+ * Mettre à jour le statut d'une demande de collaboration (Super Admin uniquement)
  */
 export const updateCollaborationRequestStatus = async (req, res) => {
     try {
@@ -168,18 +152,39 @@ export const updateCollaborationRequestStatus = async (req, res) => {
             });
         }
 
-        // 🔔 NOTIFICATION: Statut mis à jour à l'organisation
-        if (requestBeforeUpdate.status !== status) {
-            await NotificationService.notifyOrganizationRequestStatus(
-                collaborationRequest, 
-                requestBeforeUpdate.status, 
-                status
-            );
-        }
-
-        // 🔔 NOTIFICATION: Si la demande est approuvée, notifier les admins pour suivi
-        if (status === 'approved') {
-            await NotificationService.notifyAdminsCollaborationApproved(collaborationRequest);
+        // 🚀 PROMOTION AUTOMATIQUE: Si approuvé, promouvoir l'utilisateur à admin
+        if (status === 'approved' && requestBeforeUpdate.status !== 'approved') {
+            try {
+                const User = (await import('../models/userModel.js')).default;
+                const user = await User.findOne({ email: collaborationRequest.email });
+                
+                if (user && user.role === 'citizen') {
+                    await User.findByIdAndUpdate(user._id, { role: 'admin' });
+                    
+                    // Audit pour promotion automatique
+                    await logManualAudit(
+                        'USER_PROMOTED_AUTO',
+                        req.user,
+                        `Utilisateur promu automatiquement à admin suite à collaboration approuvée: ${user.email}`,
+                        { 
+                            promotedUserId: user._id,
+                            promotedUserEmail: user.email,
+                            collaborationId: collaborationRequest._id,
+                            oldRole: 'citizen',
+                            newRole: 'admin'
+                        }
+                    );
+                    
+                    console.log(`✅ Utilisateur ${user.email} promu automatiquement à admin`);
+                } else if (user) {
+                    console.log(`⚠️ Utilisateur ${user.email} déjà admin ou autre rôle: ${user.role}`);
+                } else {
+                    console.log(`⚠️ Aucun utilisateur trouvé avec l'email: ${collaborationRequest.email}`);
+                }
+            } catch (promotionError) {
+                console.error('❌ Erreur lors de la promotion automatique:', promotionError);
+                // Ne pas faire échouer la mise à jour du statut pour autant
+            }
         }
 
         // Audit pour mise à jour du statut
@@ -197,7 +202,9 @@ export const updateCollaborationRequestStatus = async (req, res) => {
 
         res.json({
             success: true,
-            message: `Statut mis à jour: ${status}`,
+            message: status === 'approved' 
+                ? `Collaboration approuvée ! L'utilisateur a été promu admin automatiquement.`
+                : `Statut mis à jour: ${status}`,
             data: collaborationRequest
         });
     } catch (error) {

@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoute.js';
 import userRoutes from './routes/userRoute.js';
+import userManagementRoutes from './routes/userManagementRoute.js';
 import wasteRoutes from './routes/wasteRoute.js';
 import collaborationRoutes from './routes/collaborationRoute.js';
 import statsRoutes from './routes/statsRoute.js';
@@ -103,6 +104,7 @@ app.use('/uploads', express.static('uploads'));
 
 // Routes essentielles seulement
 app.use('/api/auth', authRoutes);
+app.use('/api/users/manage', userManagementRoutes); // ✅ Route spécifique AVANT la route générale
 app.use('/api/users', userRoutes);
 app.use('/api/waste', wasteRoutes);
 app.use('/api/collaborations', collaborationRoutes);

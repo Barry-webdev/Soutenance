@@ -1,77 +1,3 @@
-// import React, { useEffect, useState } from 'react';
-// import { Link } from 'react-router-dom';
-// import { ArrowRight, MapPin, BarChart2, Award, Trash2 } from 'lucide-react';
-// import { useAuth } from '../context/AuthContext';
-// import MapView from '../components/map/MapView';
-
-// const HomePage: React.FC = () => {
-//   const { isAuthenticated } = useAuth();
-//   const [stats, setStats] = useState<any>(null);
-
-//   useEffect(() => {
-//     const fetchStats = async () => {
-//       try {
-//         const response = await fetch('http://localhost:4000/api/dashboard-stats');
-//         const data = await response.json();
-//         setStats(data);
-//       } catch (error) {
-//         console.error("❌ Erreur de chargement des statistiques :", error);
-//       }
-//     };
-//     fetchStats();
-//   }, []);
-
-//   return (
-//     <div className="max-w-7xl mx-auto px-4">
-
-//       {/* Hero Section */}
-//       {/* ... [inchangé] */}
-
-//       {/* Features Section */}
-//       {/* ... [inchangé] */}
-
-//       {/* Map Preview Section */}
-//       {/* ... [inchangé] */}
-
-//       {/* Statistics Section */}
-//       <section className="py-10 mb-10">
-//         <h2 className="text-2xl font-bold mb-6">Statistiques</h2>
-//         <div className="card p-6">
-//           <h3 className="text-lg font-semibold mb-2">Impact collectif</h3>
-//           <p className="text-gray-600 mb-4">
-//             Ensemble, nous faisons la différence pour la propreté de Pita.
-//           </p>
-//           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-//             {[
-//               { value: stats?.signalements ?? '...', label: 'Signalements' },
-//               { value: stats?.resolus ?? '...', label: 'Problèmes résolus' },
-//               { value: stats?.utilisateurs ?? '...', label: 'Utilisateurs actifs' },
-//               { value: stats?.quartiers ?? '...', label: 'Quartiers couverts' },
-//             ].map((stat, index) => (
-//               <div key={index} className="text-center p-4 bg-gray-50 rounded-lg">
-//                 <p className="text-2xl font-bold text-green-700">{stat.value}</p>
-//                 <p className="text-sm text-gray-600">{stat.label}</p>
-//               </div>
-//             ))}
-//           </div>
-//           <div className="mt-4 text-center">
-//             <Link to="/statistics" className="text-blue-700 hover:text-blue-800 font-medium inline-flex items-center">
-//               Voir toutes les statistiques
-//               <ArrowRight size={16} className="ml-1" />
-//             </Link>
-//           </div>
-//         </div>
-//       </section>
-
-//       {/* Call to Action */}
-//       {/* ... [inchangé] */}
-      
-//     </div>
-//   );
-// };
-
-// export default HomePage;
-
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, MapPin, BarChart2, Award, Trash2 } from 'lucide-react';
@@ -79,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../config/api';
 import prefectureImage from '../assets/images/prefecture.jpg';
 import WelcomeMessage from '../components/common/WelcomeMessage';
-import UserRoleDebug from '../components/debug/UserRoleDebug';
 
 const HomePage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -87,8 +12,8 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Charger les stats SEULEMENT pour les admins
-    if (isAuthenticated && user?.role === 'admin') {
+    // Charger les stats SEULEMENT pour les admins et super admins
+    if (isAuthenticated && (user?.role === 'admin' || user?.role === 'super_admin')) {
       const fetchStats = async () => {
         try {
           const response = await fetch(buildApiUrl('/api/stats/dashboard'), {
@@ -120,9 +45,6 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Composant de debug temporaire */}
-      <UserRoleDebug />
-      
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
 
         {/* Message de bienvenue personnalisé pour utilisateurs connectés */}
@@ -166,8 +88,8 @@ const HomePage: React.FC = () => {
                     <ArrowRight size={18} className="ml-2" />
                   </Link>
                 )}
-                {/* Bouton Carte - ADMIN SEULEMENT */}
-                {(!isAuthenticated || user?.role === 'admin') && (
+                {/* Bouton Carte - ADMIN, SUPER ADMIN ET PARTNERS */}
+                {(!isAuthenticated || user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'partner') && (
                   <Link
                     to="/map"
                     className="w-full sm:w-auto bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg font-medium inline-flex items-center justify-center border border-gray-300 transition-colors touch-manipulation"
@@ -209,7 +131,7 @@ const HomePage: React.FC = () => {
               {
                 icon: <MapPin size={24} />,
                 title: 'Géolocalisez',
-                description: isAuthenticated && user?.role === 'admin' 
+                description: isAuthenticated && (user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'partner')
                   ? 'Visualisez tous les signalements sur une carte interactive pour voir les zones à problèmes.'
                   : 'Partagez votre position précise pour que les équipes puissent localiser et traiter les déchets rapidement.',
                 bg: 'bg-blue-100 text-blue-700',
@@ -235,13 +157,9 @@ const HomePage: React.FC = () => {
         {/* Map Preview Section - SUPPRIMÉ COMPLÈTEMENT */}
         {/* Plus de carte des signalements sur l'accueil pour personne */}
 
-        {/* SECTION FORCÉE - MASQUAGE TOTAL POUR CITOYENS */}
-        {/* Statistics Section - ADMIN SEULEMENT - CONDITION ULTRA STRICTE */}
-        {false && isAuthenticated && user && user.role && user.role === 'admin' && (
+        {/* Statistics Section - ADMIN ET SUPER ADMIN SEULEMENT */}
+        {isAuthenticated && (user?.role === 'admin' || user?.role === 'super_admin') && (
           <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
-            <div className="bg-red-100 border border-red-500 p-2 mb-4 text-red-800 text-sm">
-              🔍 DEBUG: Cette section ne devrait être visible QUE pour les admins
-            </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Statistiques</h2>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
               <h3 className="text-lg font-semibold mb-2">Impact collectif</h3>
@@ -270,19 +188,6 @@ const HomePage: React.FC = () => {
                   <ArrowRight size={16} className="ml-1" />
                 </Link>
               </div>
-            </div>
-          </section>
-        )}
-
-        {/* Section DEBUG - Affichage conditionnel pour citoyens */}
-        {isAuthenticated && user && user.role === 'citizen' && (
-          <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
-            <div className="bg-green-100 border border-green-500 p-4 rounded-lg">
-              <h3 className="text-green-800 font-bold mb-2">✅ SECTION CITOYENS</h3>
-              <p className="text-green-700">
-                Cette section s'affiche SEULEMENT pour les citoyens. 
-                Si tu vois les statistiques au-dessus, il y a un problème !
-              </p>
             </div>
           </section>
         )}

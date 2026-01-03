@@ -10,10 +10,8 @@ import HomePage from './pages/HomePage';
 import ReportPage from './pages/ReportPage';
 import MapPage from './pages/MapPage';
 import ProfilePage from './pages/ProfilePage';
-import AdminDashboard from './pages/AdminDashboard';
+import AdminPage from './pages/AdminPage';
 import StatisticsPage from './pages/StatisticsPage';
-import BadgesPage from './pages/BadgesPage';
-import LeaderboardPage from './pages/LeaderboardPage';
 import SearchPage from './pages/SearchPage';
 import HelpPage from './pages/HelpPage';
 import MyReportsPage from './pages/MyReportsPage';
@@ -62,17 +60,11 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/admin" element={
-                  <ProtectedRoute requiredRole="admin">
-                    <AdminDashboard />
+                  <ProtectedRoute requiredRole={["admin", "super_admin"]}>
+                    <AdminPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/statistics" element={<StatisticsPage />} />
-                <Route path="/badges" element={
-                  <ProtectedRoute>
-                    <BadgesPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/leaderboard" element={<LeaderboardPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/help" element={<HelpPage />} />
                 <Route path="/collaboration" element={<CollaborationPage />} />

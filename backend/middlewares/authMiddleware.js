@@ -62,10 +62,23 @@ export const authenticate = async (req, res, next) => {
  * Middleware pour vérifier le rôle admin
  */
 export const requireAdmin = (req, res, next) => {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
         return res.status(403).json({ 
             success: false,
             error: 'Accès refusé. Droits administrateur requis.' 
+        });
+    }
+    next();
+};
+
+/**
+ * Middleware pour vérifier le rôle super admin uniquement
+ */
+export const requireSuperAdmin = (req, res, next) => {
+    if (req.user.role !== 'super_admin') {
+        return res.status(403).json({ 
+            success: false,
+            error: 'Accès refusé. Droits super administrateur requis.' 
         });
     }
     next();

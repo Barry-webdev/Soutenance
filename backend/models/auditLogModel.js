@@ -12,11 +12,15 @@ const auditLogSchema = new mongoose.Schema({
             'WASTE_REPORT_CREATE', 'WASTE_REPORT_UPDATE', 'WASTE_REPORT_DELETE', 'WASTE_REPORT_STATUS_UPDATE', 'WASTE_REPORT_STATUS_INVALID', 'WASTE_REPORT_NOT_FOUND', 'WASTE_REPORT_INVALID',
             'WASTE_REPORTS_VIEW_ALL', 'WASTE_REPORTS_VIEW_MY', 'WASTE_REPORTS_VIEW_MAP',
             // Collaborations
-            'COLLABORATION_REQUEST', 'COLLABORATION_APPROVE', 'COLLABORATION_REJECT',
+            'COLLABORATION_REQUEST', 'COLLABORATION_APPROVE', 'COLLABORATION_REJECT', 'COLLABORATION_STATUS_UPDATE', 'COLLABORATION_STATUS_INVALID', 'COLLABORATION_NOT_FOUND', 'COLLABORATION_VIEW_ALL', 'COLLABORATION_DELETE', 'COLLABORATION_STATS_VIEW',
             // Notifications
             'NOTIFICATIONS_VIEW', 'NOTIFICATIONS_CREATE', 'NOTIFICATIONS_UPDATE',
+            // Gestion des utilisateurs (Super Admin)
+            'USERS_VIEW_ALL', 'USER_ROLE_UPDATE', 'USER_DELETE', 'USER_STATUS_TOGGLE', 'USER_STATS_VIEW', 'USER_PROMOTED_AUTO',
             // Administration
             'USER_MANAGEMENT', 'USER_MANAGEMENT_VIEW', 'ROLE_UPDATE', 'STATUS_UPDATE',
+            // Statistiques
+            'STATS_VIEW_GENERAL', 'STATS_VIEW_ADVANCED', 'STATS_VIEW_DASHBOARD',
             // Système
             'SYSTEM_BACKUP', 'DATA_EXPORT', 'SETTINGS_UPDATE', 'SYSTEM_ERROR'
         ]
@@ -32,7 +36,7 @@ const auditLogSchema = new mongoose.Schema({
     },
     userRole: {
         type: String,
-        enum: ['citizen', 'admin', 'partner'],
+        enum: ['citizen', 'admin', 'partner', 'super_admin', 'system', 'public', 'unknown'],
         required: true
     },
     resourceType: {

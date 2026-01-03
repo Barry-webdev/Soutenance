@@ -16,6 +16,7 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     
     if (password !== confirmPassword) {
       setError('Les mots de passe ne correspondent pas.');
@@ -28,20 +29,22 @@ const RegisterPage: React.FC = () => {
     }
     
     try {
-      // ✅ Inscription sans connexion automatique
-      await register(email, password, name);
+      // ✅ Inscription avec redirection immédiate
+      const result = await register(email, password, name);
       
-      setSuccess('Inscription réussie ! Redirection vers la connexion...');
-      
-      // ✅ Redirection vers la page de connexion après inscription
-      setTimeout(() => {
-        navigate('/login', { 
-          state: { 
-            message: 'Inscription réussie ! Veuillez vous connecter avec vos identifiants.',
-            email: email // Pré-remplir l'email sur la page de connexion
-          }
-        });
-      }, 2000);
+      if (result.success) {
+        setSuccess('Inscription réussie ! Redirection...');
+        
+        // ✅ Redirection immédiate vers login
+        setTimeout(() => {
+          navigate('/login', { 
+            state: { 
+              message: 'Inscription réussie ! Veuillez vous connecter.',
+              email: email
+            }
+          });
+        }, 1000); // Délai réduit à 1 seconde
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'inscription. Veuillez réessayer.');
     }

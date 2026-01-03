@@ -128,9 +128,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { token, user } = data.data;
       
+      // ✅ Sauvegarde immédiate
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
+      // ✅ Mise à jour immédiate du state
       setAuthState({
         user,
         isAuthenticated: true,
@@ -138,15 +140,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error: null,
       });
 
-      // 🚀 Retourner les données utilisateur pour redirection immédiate
-      return { user, token };
+      // ✅ Retour immédiat pour redirection
+      return { 
+        success: true, 
+        user, 
+        token,
+        redirect: user.role === 'super_admin' ? '/admin' : 
+                 user.role === 'admin' ? '/statistics' : 
+                 '/'
+      };
     } catch (error) {
       setAuthState(prevState => ({
         ...prevState,
         isLoading: false,
         error: error.message || 'Erreur de connexion',
       }));
-      // Relancer l'erreur pour que le composant appelant puisse la gérer
       throw error;
     }
   };
@@ -167,16 +175,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.error || 'Erreur lors de l\'inscription');
       }
 
-      // ✅ NE PAS connecter automatiquement après inscription
-      // L'utilisateur doit se connecter manuellement
+      // ✅ Inscription réussie - redirection immédiate vers login
       setAuthState(prevState => ({
         ...prevState,
         isLoading: false,
         error: null,
       }));
 
-      // Retourner les données pour confirmation
-      return { success: true, message: 'Inscription réussie ! Veuillez vous connecter.' };
+      return { 
+        success: true, 
+        message: 'Inscription réussie ! Veuillez vous connecter.',
+        redirect: '/login'
+      };
     } catch (error) {
       setAuthState(prevState => ({
         ...prevState,

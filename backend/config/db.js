@@ -4,11 +4,16 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 /**
- * Connexion à MongoDB avec gestion d'erreurs robuste
+ * Connexion à MongoDB avec gestion d'erreurs robuste et retry automatique
  */
 const connectDB = async () => {
     try {
         const mongoURI = process.env.MONGODB_URI;
+        
+        if (!mongoURI) {
+            console.warn('⚠️ MONGODB_URI non défini, fonctionnement en mode dégradé');
+            return null;
+        }
         
         const connexion = await mongoose.connect(mongoURI, {
             serverSelectionTimeoutMS: 5000,
@@ -26,7 +31,15 @@ const connectDB = async () => {
     } catch (error) {
         console.error('❌ Echec de la connexion à MongoDB');
         console.error(`Erreur: ${error.message}`);
-        process.exit(1);
+        console.log('🔄 Le serveur continue en mode dégradé...');
+        
+        // Retry automatique après 10 secondes
+        setTimeout(() => {
+            console.log('🔄 Tentative de reconnexion à MongoDB...');
+            connectDB();
+        }, 10000);
+        
+        return null;
     }
 };
 
