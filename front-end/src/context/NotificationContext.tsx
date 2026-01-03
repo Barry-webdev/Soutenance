@@ -48,7 +48,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (!response.ok) throw new Error('Erreur réseau');
 
         const responseData = await response.json();
-        const data: Notification[] = responseData.data || [];
+        // ✅ Protection contre les données null/undefined
+        const data: Notification[] = Array.isArray(responseData.data) ? responseData.data : [];
 
         const formattedNotifications = data.map((notif) => ({
           ...notif,
@@ -61,6 +62,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setUnreadCount(nonLues);
       } catch (error) {
         console.error('❌ Erreur de récupération des notifications', error);
+        // ✅ En cas d'erreur, initialiser avec des valeurs sûres
+        setNotifications([]);
+        setUnreadCount(0);
       }
     };
 

@@ -22,7 +22,9 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
           }
         });
         const responseData = await response.json();
-        const data = responseData.data || [];
+        
+        // ✅ Protection contre les données null/undefined
+        const data = Array.isArray(responseData.data) ? responseData.data : [];
 
         // ✅ Ajout d'un formatage sûr de la date
         const formattedNotifications = data.map((notif: any) => ({
@@ -37,6 +39,9 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ userId, onC
         setUnreadCount(nonLues);
       } catch (error) {
         console.error("❌ Erreur de récupération des notifications", error);
+        // ✅ En cas d'erreur, initialiser avec un tableau vide
+        setNotifications([]);
+        setUnreadCount(0);
         setLoading(false);
       }
     };
