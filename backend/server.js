@@ -23,64 +23,32 @@ connectDB();
 // Middlewares de sécurité
 app.use(helmet());
 
-// Configuration CORS ultra-permissive TEMPORAIRE pour déblocage immédiat
+// Configuration CORS ultra-permissive pour résoudre les problèmes de connectivité
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    // Permettre toutes les origines Vercel et localhost
+    const origin = req.headers.origin;
+    
+    if (!origin || 
+        origin.includes('localhost') || 
+        origin.includes('vercel.app') ||
+        origin.includes('ecopulse-app') ||
+        origin.includes('soutenance-barry-webdevs-projects')) {
+        res.header('Access-Control-Allow-Origin', origin || '*');
+    } else {
+        // Log des origines non reconnues mais les autoriser quand même
+        console.log('⚠️ Origin non reconnu mais autorisé:', origin);
+        res.header('Access-Control-Allow-Origin', origin || '*');
+    }
+    
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     res.header('Access-Control-Allow-Credentials', 'true');
     
+    // Gérer les requêtes preflight OPTIONS
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
     next();
-});
-
-// Configuration CORS permissive pour la production
-app.use(cors({
-    origin: function (origin, callback) {
-        // Permettre les requêtes sans origin (mobile apps, etc.)
-        if (!origin) return callback(null, true);
-        
-        // Permettre localhost pour le développement
-        if (origin.includes('localhost')) {
-            return callback(null, true);
-        }
-        
-        // Permettre tous les domaines Vercel
-        if (origin.includes('vercel.app')) {
-            return callback(null, true);
-        }
-        
-        // Permettre les domaines de production connus
-        const allowedDomains = [
-            'ecopulse-app.vercel.app',
-            'ecopulse-app-web.vercel.app',
-            'soutenance-barry-webdevs-projects.vercel.app'
-        ];
-        
-        for (const domain of allowedDomains) {
-            if (origin.includes(domain)) {
-                return callback(null, true);
-            }
-        }
-        
-        // En cas de doute, permettre (pour éviter les blocages)
-        console.log('⚠️ Origin non reconnu mais autorisé:', origin);
-        callback(null, true);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
-// Middleware pour gérer les requêtes OPTIONS (preflight)
-app.options('*', (req, res) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.sendStatus(200);
 });
 
 // Limitation de taux (plus permissive pour éviter les blocages)
@@ -99,6 +67,15 @@ app.use('/api/', limiter);
 // Middlewares
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Middleware de logging pour debug CORS
+app.use((req, res, next) => {
+    if (req.method === 'PATCH' || req.method === 'OPTIONS') {
+        console.log(`🌐 ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
+        console.log(`📋 Headers: ${JSON.stringify(req.headers.authorization ? 'Bearer ***' : 'no-auth')}`);
+    }
+    next();
+});
 
 // Servir les fichiers statiques (images)
 app.use('/uploads', express.static('uploads'));

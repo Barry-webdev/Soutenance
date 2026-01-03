@@ -109,17 +109,51 @@ export const apiCall = async <T = any>(
 };
 
 /**
- * Fonction spécialisée pour les mises à jour de statut
+ * Fonction spécialisée pour les mises à jour de statut avec retry
  */
 export const updateStatus = async (
   endpoint: string,
   status: string,
   id: string
 ): Promise<ApiResponse> => {
-  return apiCall(endpoint, {
-    method: 'PATCH',
-    body: JSON.stringify({ status }),
-  });
+  // Première tentative avec la méthode normale
+  try {
+    return await apiCall(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  } catch (error) {
+    console.warn('❌ Première tentative échouée, essai avec méthode alternative...');
+    
+    // Deuxième tentative avec headers explicites pour CORS
+    try {
+      const url = buildApiUrl(endpoint);
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(url, {
+        method: 'PATCH',
+        mode: 'cors',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new ApiError(`Erreur ${response.status}: ${errorText}`, response.status);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (retryError) {
+      console.error('❌ Deuxième tentative échouée aussi:', retryError);
+      throw retryError;
+    }
+  }
 };
 
 /**
@@ -167,6 +201,7 @@ export const testConnectivityWithFallback = async (): Promise<string | null> => 
       
       const response = await fetch(`${baseUrl}/api/health`, {
         method: 'GET',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json'
         }
@@ -182,4 +217,37 @@ export const testConnectivityWithFallback = async (): Promise<string | null> => 
   }
   
   return null;
+};
+
+/**
+ * Test spécifique pour les mises à jour de statut
+ */
+export const testStatusUpdateEndpoint = async (reportId: string): Promise<boolean> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('❌ Pas de token d\'authentification');
+      return false;
+    }
+
+    const url = buildApiUrl(`/api/waste/${reportId}/status`);
+    console.log('🔍 Test endpoint mise à jour:', url);
+
+    // Test avec OPTIONS d'abord (preflight)
+    const optionsResponse = await fetch(url, {
+      method: 'OPTIONS',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+
+    console.log('📊 OPTIONS response:', optionsResponse.status, optionsResponse.statusText);
+    
+    return optionsResponse.ok;
+  } catch (error) {
+    console.error('❌ Test endpoint échoué:', error);
+    return false;
+  }
 };

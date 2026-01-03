@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { buildApiUrl, buildImageUrl } from '../config/api';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, UserCheck, UserX, Trash2, Search, Filter } from 'lucide-react';
-import { apiCall, updateStatus, ApiError, testConnectivityWithFallback } from '../utils/apiUtils';
+import { apiCall, updateStatus, ApiError, testConnectivityWithFallback, testStatusUpdateEndpoint } from '../utils/apiUtils';
 
 // Interfaces
 interface User {
@@ -228,11 +228,10 @@ const AdminPage: React.FC = () => {
       console.log('🔄 Mise à jour statut:', reportId, newStatus);
       console.log('🌐 URL de base API:', import.meta.env.VITE_API_URL);
       
-      // Test de connectivité avant la mise à jour
-      const workingUrl = await testConnectivityWithFallback();
-      if (!workingUrl) {
-        throw new Error('Aucune connectivité API disponible');
-      }
+      // Test de l'endpoint spécifique avant la mise à jour
+      console.log('🔍 Test de l\'endpoint de mise à jour...');
+      const endpointWorking = await testStatusUpdateEndpoint(reportId);
+      console.log('📊 Endpoint accessible:', endpointWorking ? '✅' : '❌');
       
       const response = await updateStatus(`/api/waste/${reportId}/status`, newStatus, reportId);
       
@@ -267,6 +266,13 @@ const AdminPage: React.FC = () => {
           errorMessage = 'Erreur serveur. Réessayez dans quelques instants.';
         }
       }
+      
+      // Ajouter des informations de diagnostic
+      console.error('🔍 Informations de diagnostic:');
+      console.error('- URL API:', import.meta.env.VITE_API_URL);
+      console.error('- Token présent:', !!localStorage.getItem('token'));
+      console.error('- Report ID:', reportId);
+      console.error('- Nouveau statut:', newStatus);
       
       alert(`Échec de la mise à jour du statut: ${errorMessage}`);
     } finally {
