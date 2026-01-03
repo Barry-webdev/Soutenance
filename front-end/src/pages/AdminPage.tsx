@@ -67,6 +67,7 @@ const AdminPage: React.FC = () => {
   const [reportsLoading, setReportsLoading] = useState(true);
   const [reportFilter, setReportFilter] = useState('all');
   const [updatingReport, setUpdatingReport] = useState<string | null>(null);
+  const [selectedReport, setSelectedReport] = useState<WasteReport | null>(null);
 
   // Vérifier que l'utilisateur est admin ou super admin
   if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
@@ -119,7 +120,10 @@ const AdminPage: React.FC = () => {
 
       if (response.ok) {
         await fetchReports(); // Recharger la liste
-        alert('Statut mis à jour avec succès');
+        // Mettre à jour le signalement sélectionné si c'est le même
+        if (selectedReport && selectedReport._id === reportId) {
+          setSelectedReport({...selectedReport, status: newStatus as any});
+        }
       } else {
         const error = await response.json();
         alert(`Erreur: ${error.error}`);
@@ -452,116 +456,214 @@ const AdminPage: React.FC = () => {
 
             <div className="overflow-x-auto">
               {reportsLoading ? (
-                <div className="p-8 text-center">Chargement...</div>
+                <div className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p>Chargement...</p>
+                </div>
               ) : (
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Signalement
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Utilisateur
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Statut
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
+                <table className="min-w-full bg-white">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Date</th>
+                      <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">Description</th>
+                      <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">Utilisateur</th>
+                      <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Type</th>
+                      <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Statut</th>
+                      <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Image</th>
+                      <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {reports.map((report) => (
-                      <tr key={report._id}>
-                        <td className="px-6 py-4">
-                          <div className="flex items-start space-x-3">
-                            {report.images?.thumbnail?.url && (
+                  <tbody>
+                    {reports.length === 0 ? (
+                      <tr><td colSpan={7} className="text-center py-4">Aucun signalement</td></tr>
+                    ) : (
+                      reports.map(report => (
+                        <tr key={report._id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                            {new Date(report.createdAt).toLocaleDateString('fr-FR')}
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">
+                            {report.description.length > 50 ? `${report.description.substring(0, 50)}...` : report.description}
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">
+                            {report.userId.name}
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                              {report.wasteType}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              report.status === 'collected' ? 'bg-green-100 text-green-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {report.status === 'pending' ? 'En attente' :
+                               report.status === 'collected' ? 'Collecté' : 'Non collecté'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                            {report.images?.thumbnail?.url ? (
                               <img 
                                 src={report.images.thumbnail.url} 
-                                alt="Signalement" 
-                                className="w-12 h-12 rounded-lg object-cover"
+                                alt="Aperçu" 
+                                className="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-80"
+                                onClick={() => setSelectedReport(report)}
                               />
+                            ) : (
+                              <span className="text-gray-400 text-xs">Pas d'image</span>
                             )}
-                            <div>
-                              <div className="text-sm font-medium text-gray-900 max-w-xs">
-                                {report.description.length > 50 
-                                  ? `${report.description.substring(0, 50)}...` 
-                                  : report.description
-                                }
-                              </div>
-                              {report.location?.address && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  📍 {report.location.address}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{report.userId.name}</div>
-                            <div className="text-sm text-gray-500">{report.userId.email}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                            {report.wasteType}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            report.status === 'collected' ? 'bg-green-100 text-green-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {report.status === 'pending' ? 'En attente' :
-                             report.status === 'collected' ? 'Collecté' : 'Non collecté'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(report.createdAt).toLocaleDateString('fr-FR')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex gap-2 flex-wrap">
-                            <select
-                              value={report.status}
-                              onChange={(e) => updateReportStatus(report._id, e.target.value)}
-                              disabled={updatingReport === report._id}
-                              className="text-xs border border-gray-300 rounded px-2 py-1 disabled:opacity-50"
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                            <button 
+                              onClick={() => setSelectedReport(report)} 
+                              className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-300 rounded hover:bg-blue-50"
                             >
-                              <option value="pending">En attente</option>
-                              <option value="collected">Collecté</option>
-                              <option value="not_collected">Non collecté</option>
-                            </select>
-                            <button
-                              onClick={() => openDirections(report.location.coordinates)}
-                              className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                              title="Ouvrir l'itinéraire"
-                            >
-                              <Navigation size={12} />
+                              Voir
                             </button>
-                            <button
-                              onClick={() => deleteReport(report._id)}
-                              className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-                              title="Supprimer"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               )}
             </div>
+
+            {/* Modale détaillée des signalements */}
+            {selectedReport && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto p-4 sm:p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-xl font-semibold">Détails du signalement</h3>
+                    <button 
+                      onClick={() => setSelectedReport(null)}
+                      className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Informations du signalement */}
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Informations générales</h4>
+                        <div className="space-y-2">
+                          <p><strong>Description:</strong> {selectedReport.description}</p>
+                          <p><strong>Type de déchet:</strong> 
+                            <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                              {selectedReport.wasteType}
+                            </span>
+                          </p>
+                          <p><strong>Statut:</strong> 
+                            <span className={`ml-2 px-2 py-1 rounded-full text-sm ${
+                              selectedReport.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              selectedReport.status === 'collected' ? 'bg-green-100 text-green-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {selectedReport.status === 'pending' ? 'En attente' :
+                               selectedReport.status === 'collected' ? 'Collecté' : 'Non collecté'}
+                            </span>
+                          </p>
+                          <p><strong>Date de création:</strong> {new Date(selectedReport.createdAt).toLocaleString('fr-FR')}</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Utilisateur</h4>
+                        <div className="space-y-2">
+                          <p><strong>Nom:</strong> {selectedReport.userId.name}</p>
+                          <p><strong>Email:</strong> {selectedReport.userId.email}</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Localisation</h4>
+                        <div className="space-y-2">
+                          <p><strong>Latitude:</strong> {selectedReport.location.coordinates[1]}</p>
+                          <p><strong>Longitude:</strong> {selectedReport.location.coordinates[0]}</p>
+                          <p><strong>Coordonnées:</strong> {selectedReport.location.coordinates[1].toFixed(6)}, {selectedReport.location.coordinates[0].toFixed(6)}</p>
+                          
+                          {/* Bouton de navigation */}
+                          <div className="mt-2">
+                            <button 
+                              onClick={() => openDirections(selectedReport.location.coordinates)}
+                              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm flex items-center gap-1"
+                            >
+                              🚗 Obtenir l'itinéraire
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions de mise à jour du statut */}
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Actions</h4>
+                        <div className="flex flex-wrap gap-2">
+                          <button 
+                            onClick={() => {
+                              updateReportStatus(selectedReport._id, 'pending');
+                              setSelectedReport({...selectedReport, status: 'pending'});
+                            }} 
+                            className="px-3 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
+                            disabled={updatingReport === selectedReport._id}
+                          >
+                            Marquer en attente
+                          </button>
+                          <button 
+                            onClick={() => {
+                              updateReportStatus(selectedReport._id, 'collected');
+                              setSelectedReport({...selectedReport, status: 'collected'});
+                            }} 
+                            className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                            disabled={updatingReport === selectedReport._id}
+                          >
+                            Marquer collecté
+                          </button>
+                          <button 
+                            onClick={() => {
+                              updateReportStatus(selectedReport._id, 'not_collected');
+                              setSelectedReport({...selectedReport, status: 'not_collected'});
+                            }} 
+                            className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                            disabled={updatingReport === selectedReport._id}
+                          >
+                            Marquer non collecté
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Image */}
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Image du signalement</h4>
+                      {selectedReport.images?.original?.url ? (
+                        <div className="space-y-2">
+                          <img 
+                            src={selectedReport.images.original.url} 
+                            alt="Signalement" 
+                            className="w-full h-64 object-cover rounded-lg border cursor-pointer hover:opacity-90"
+                            onClick={() => {
+                              // Ouvrir l'image en plein écran
+                              window.open(selectedReport.images.original.url, '_blank');
+                            }}
+                          />
+                          <p className="text-xs text-gray-500 italic">
+                            💡 Cliquez sur l'image pour l'agrandir
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="w-full h-64 bg-gray-100 rounded-lg border flex items-center justify-center">
+                          <p className="text-gray-500">Aucune image disponible</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
