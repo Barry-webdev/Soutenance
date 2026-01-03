@@ -32,6 +32,7 @@ app.use((req, res, next) => {
         origin.includes('localhost') || 
         origin.includes('vercel.app') ||
         origin.includes('ecopulse-app') ||
+        origin.includes('ecopulse-three') ||
         origin.includes('soutenance-barry-webdevs-projects')) {
         res.header('Access-Control-Allow-Origin', origin || '*');
     } else {
