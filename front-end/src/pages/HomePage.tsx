@@ -78,7 +78,6 @@ import { ArrowRight, MapPin, BarChart2, Award, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../config/api';
 import prefectureImage from '../assets/images/prefecture.jpg';
-import MapView from '../components/map/MapView';
 import WelcomeMessage from '../components/common/WelcomeMessage';
 
 const HomePage: React.FC = () => {
@@ -229,24 +228,8 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-        {/* Map Preview Section - ADMIN SEULEMENT */}
-        {isAuthenticated && user?.role === 'admin' && (
-          <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Carte des signalements</h2>
-            <div className="rounded-lg overflow-hidden">
-              <MapView />
-            </div>
-            <div className="mt-4 text-center">
-              <Link 
-                to="/map" 
-                className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center text-sm sm:text-base touch-manipulation"
-              >
-                Voir la carte complète
-                <ArrowRight size={16} className="ml-1" />
-              </Link>
-            </div>
-          </section>
-        )}
+        {/* Map Preview Section - SUPPRIMÉ COMPLÈTEMENT */}
+        {/* Plus de carte des signalements sur l'accueil pour personne */}
 
         {/* Statistics Section - ADMIN SEULEMENT */}
         {isAuthenticated && user?.role === 'admin' && (
