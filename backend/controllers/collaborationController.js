@@ -17,8 +17,8 @@ export const submitCollaborationRequest = async (req, res) => {
             type
         });
 
-        // Pas d'audit pour les soumissions publiques (pour éviter les erreurs)
-        console.log(`📝 Nouvelle demande de collaboration: ${organizationName} (${email})`);
+        console.log('📝 Nouvelle demande de collaboration:', organizationName, '(', email, ')');
+        console.log('🚀 Version déployée:', new Date().toISOString());
 
         res.status(201).json({ 
             success: true, 
