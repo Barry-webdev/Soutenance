@@ -79,6 +79,7 @@ import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../config/api';
 import prefectureImage from '../assets/images/prefecture.jpg';
 import WelcomeMessage from '../components/common/WelcomeMessage';
+import UserRoleDebug from '../components/debug/UserRoleDebug';
 
 const HomePage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -119,6 +120,9 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen">
+      {/* Composant de debug temporaire */}
+      <UserRoleDebug />
+      
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
 
         {/* Message de bienvenue personnalisé pour utilisateurs connectés */}
@@ -231,9 +235,12 @@ const HomePage: React.FC = () => {
         {/* Map Preview Section - SUPPRIMÉ COMPLÈTEMENT */}
         {/* Plus de carte des signalements sur l'accueil pour personne */}
 
-        {/* Statistics Section - ADMIN SEULEMENT */}
-        {isAuthenticated && user?.role === 'admin' && (
+        {/* Statistics Section - ADMIN SEULEMENT - VÉRIFICATION RENFORCÉE */}
+        {isAuthenticated && user && user.role && user.role === 'admin' && (
           <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
+            <div className="bg-red-100 border border-red-500 p-2 mb-4 text-red-800 text-sm">
+              🔍 DEBUG: Cette section ne devrait être visible QUE pour les admins
+            </div>
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Statistiques</h2>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
               <h3 className="text-lg font-semibold mb-2">Impact collectif</h3>
@@ -262,6 +269,19 @@ const HomePage: React.FC = () => {
                   <ArrowRight size={16} className="ml-1" />
                 </Link>
               </div>
+            </div>
+          </section>
+        )}
+
+        {/* Section DEBUG - Affichage conditionnel pour citoyens */}
+        {isAuthenticated && user && user.role === 'citizen' && (
+          <section className="py-6 sm:py-8 lg:py-10 mb-6 sm:mb-8 lg:mb-10">
+            <div className="bg-green-100 border border-green-500 p-4 rounded-lg">
+              <h3 className="text-green-800 font-bold mb-2">✅ SECTION CITOYENS</h3>
+              <p className="text-green-700">
+                Cette section s'affiche SEULEMENT pour les citoyens. 
+                Si tu vois les statistiques au-dessus, il y a un problème !
+              </p>
             </div>
           </section>
         )}
