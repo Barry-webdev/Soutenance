@@ -11,7 +11,7 @@ import wasteRoutes from './routes/wasteRoute.js';
 import collaborationRoutes from './routes/collaborationRoute.js';
 import statsRoutes from './routes/statsRoute.js';
 import notificationRoutes from './routes/notificationRoute.js';
-import imageTestRoutes from './routes/imageTestRoute.js';
+
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 import { createServer } from 'http';
 
@@ -111,7 +111,6 @@ app.use('/api/waste', wasteRoutes);
 app.use('/api/collaborations', collaborationRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/debug', imageTestRoutes);
 
 // Endpoints de santé pour les tests et le monitoring
 app.get('/api/health', (req, res) => {
@@ -122,75 +121,6 @@ app.get('/api/health', (req, res) => {
         environment: process.env.NODE_ENV || 'development',
         version: '1.0.0'
     });
-});
-
-// Endpoint de debug pour contourner le rate limiting
-app.get('/debug/health', (req, res) => {
-    res.json({
-        status: 'OK - Debug',
-        uptime: process.uptime(),
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        version: '1.0.0',
-        message: 'Endpoint de debug sans rate limiting'
-    });
-});
-
-// Route de debug pour l'authentification (sans rate limiting)
-app.post('/debug/auth/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        
-        // Import dynamique pour éviter les problèmes de dépendances
-        const { default: User } = await import('./models/userModel.js');
-        const jwt = await import('jsonwebtoken');
-        
-        const user = await User.findOne({ email }).select('+password');
-        
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                error: 'Email ou mot de passe incorrect'
-            });
-        }
-        
-        const isPasswordValid = await user.comparePassword(password);
-        
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                error: 'Email ou mot de passe incorrect'
-            });
-        }
-        
-        const token = jwt.default.sign(
-            { userId: user._id },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-        
-        res.json({
-            success: true,
-            message: 'Connexion réussie (debug)',
-            data: {
-                token,
-                user: {
-                    id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role,
-                    points: user.points
-                }
-            }
-        });
-        
-    } catch (error) {
-        console.error('❌ Erreur debug login:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erreur serveur'
-        });
-    }
 });
 
 app.get('/api/health/db', async (req, res) => {
