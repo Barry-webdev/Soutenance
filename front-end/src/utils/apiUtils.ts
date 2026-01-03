@@ -46,41 +46,58 @@ export const apiCall = async <T = any>(
 
     const finalOptions = { ...defaultOptions, ...options };
 
-    const response = await fetch(url, finalOptions);
+    // Timeout pour éviter les appels qui traînent
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 secondes
 
-    console.log('📊 Réponse API:', response.status, response.statusText);
+    try {
+      const response = await fetch(url, {
+        ...finalOptions,
+        signal: controller.signal
+      });
 
-    // Gérer les erreurs HTTP
-    if (!response.ok) {
-      let errorMessage = `Erreur ${response.status}`;
-      
-      try {
-        const errorText = await response.text();
-        if (errorText) {
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.error || errorData.message || errorMessage;
-          } catch {
-            errorMessage = errorText || errorMessage;
+      clearTimeout(timeoutId);
+      console.log('📊 Réponse API:', response.status, response.statusText);
+
+      // Gérer les erreurs HTTP
+      if (!response.ok) {
+        let errorMessage = `Erreur ${response.status}`;
+        
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch {
+              errorMessage = errorText || errorMessage;
+            }
           }
+        } catch (readError) {
+          console.error('❌ Impossible de lire la réponse d\'erreur:', readError);
         }
-      } catch (readError) {
-        console.error('❌ Impossible de lire la réponse d\'erreur:', readError);
+
+        throw new ApiError(errorMessage, response.status, response);
       }
 
-      throw new ApiError(errorMessage, response.status, response);
+      // Parser la réponse JSON
+      const data = await response.json();
+      console.log('✅ Données reçues:', data);
+
+      return data;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      throw fetchError;
     }
-
-    // Parser la réponse JSON
-    const data = await response.json();
-    console.log('✅ Données reçues:', data);
-
-    return data;
   } catch (error) {
     console.error('❌ Erreur appel API:', error);
 
     if (error instanceof ApiError) {
       throw error;
+    }
+
+    if (error.name === 'AbortError') {
+      throw new ApiError('Timeout: La requête a pris trop de temps à répondre');
     }
 
     if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -106,14 +123,63 @@ export const updateStatus = async (
 };
 
 /**
- * Fonction pour tester la connectivité
+ * Fonction pour tester la connectivité avec diagnostic détaillé
  */
 export const checkApiHealth = async (): Promise<boolean> => {
   try {
+    console.log('🔍 Test de connectivité API détaillé...');
+    
+    // Test 1: Health check simple
     const response = await apiCall('/api/health');
+    console.log('✅ Health check réussi:', response);
+    
     return response.success !== false;
   } catch (error) {
     console.error('❌ Test de santé API échoué:', error);
+    
+    // Diagnostic détaillé
+    if (error instanceof ApiError) {
+      console.error('📊 Détails erreur API:');
+      console.error('- Status:', error.status);
+      console.error('- Message:', error.message);
+      
+      if (error.status === 0 || !error.status) {
+        console.error('🚨 Problème de CORS ou serveur inaccessible');
+      }
+    }
+    
     return false;
   }
+};
+
+/**
+ * Test de connectivité avec fallback sur différentes URLs
+ */
+export const testConnectivityWithFallback = async (): Promise<string | null> => {
+  const urls = [
+    'https://ecopulse-backend-00i3.onrender.com',
+    'http://localhost:4000'
+  ];
+  
+  for (const baseUrl of urls) {
+    try {
+      console.log(`🔍 Test connectivité: ${baseUrl}`);
+      
+      const response = await fetch(`${baseUrl}/api/health`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Connectivité OK avec: ${baseUrl}`);
+        return baseUrl;
+      }
+    } catch (error) {
+      console.error(`❌ Échec connectivité ${baseUrl}:`, error.message);
+    }
+  }
+  
+  return null;
 };

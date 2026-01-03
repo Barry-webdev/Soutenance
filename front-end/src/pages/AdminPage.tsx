@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { buildApiUrl, buildImageUrl } from '../config/api';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, UserCheck, UserX, Trash2, Search, Filter } from 'lucide-react';
-import { apiCall, updateStatus, ApiError } from '../utils/apiUtils';
+import { apiCall, updateStatus, ApiError, testConnectivityWithFallback } from '../utils/apiUtils';
 
 // Interfaces
 interface User {
@@ -84,11 +84,26 @@ const AdminPage: React.FC = () => {
   useEffect(() => {
     const checkApiConnection = async () => {
       console.log('🔍 Test de connectivité API...');
+      
+      // Test avec fallback
+      const workingUrl = await testConnectivityWithFallback();
+      
+      if (workingUrl) {
+        console.log('📡 Connectivité API: ✅ OK avec', workingUrl);
+      } else {
+        console.error('📡 Connectivité API: ❌ Échec sur toutes les URLs');
+        console.error('🚨 Vérifiez:');
+        console.error('- Le backend est-il démarré ?');
+        console.error('- Y a-t-il des problèmes de CORS ?');
+        console.error('- L\'URL de l\'API est-elle correcte ?');
+      }
+      
+      // Test simple avec notre configuration actuelle
       try {
         const response = await apiCall('/api/health');
-        console.log('📡 Connectivité API: ✅ OK');
+        console.log('✅ Test API config actuelle: OK');
       } catch (error) {
-        console.warn('⚠️ Problème de connectivité détecté avec l\'API:', error);
+        console.error('❌ Test API config actuelle: Échec', error);
       }
     };
 
@@ -200,7 +215,7 @@ const AdminPage: React.FC = () => {
     console.log('- Collaborations:', collaborations.length, 'loading:', isLoadingCollaborations, 'error:', collaborationsError?.message);
   }, [reports, users, collaborations, isLoadingReports, isLoadingUsers, isLoadingCollaborations, reportsError, usersError, collaborationsError]);
 
-  // Fonction de mise à jour du statut
+  // Fonction de mise à jour du statut avec diagnostic
   const updateReportStatus = async (reportId: string, newStatus: WasteReport['status']) => {
     if (updatingStatus) {
       alert('Une mise à jour est déjà en cours...');
@@ -211,6 +226,13 @@ const AdminPage: React.FC = () => {
     
     try {
       console.log('🔄 Mise à jour statut:', reportId, newStatus);
+      console.log('🌐 URL de base API:', import.meta.env.VITE_API_URL);
+      
+      // Test de connectivité avant la mise à jour
+      const workingUrl = await testConnectivityWithFallback();
+      if (!workingUrl) {
+        throw new Error('Aucune connectivité API disponible');
+      }
       
       const response = await updateStatus(`/api/waste/${reportId}/status`, newStatus, reportId);
       
@@ -229,9 +251,22 @@ const AdminPage: React.FC = () => {
     } catch (error) {
       console.error('❌ Erreur mise à jour statut:', error);
       
-      const errorMessage = error instanceof ApiError 
-        ? error.message 
-        : 'Erreur inconnue lors de la mise à jour';
+      let errorMessage = 'Erreur inconnue lors de la mise à jour';
+      
+      if (error instanceof ApiError) {
+        errorMessage = error.message;
+        
+        // Diagnostic spécifique selon le type d'erreur
+        if (error.status === 0 || !error.status) {
+          errorMessage = 'Problème de connexion réseau ou CORS. Le serveur backend est-il accessible ?';
+        } else if (error.status === 401) {
+          errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+        } else if (error.status === 403) {
+          errorMessage = 'Droits insuffisants pour cette action.';
+        } else if (error.status >= 500) {
+          errorMessage = 'Erreur serveur. Réessayez dans quelques instants.';
+        }
+      }
       
       alert(`Échec de la mise à jour du statut: ${errorMessage}`);
     } finally {
