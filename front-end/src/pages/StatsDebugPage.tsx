@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoginDebug from '../components/debug/LoginDebug';
 import NotificationTest from '../components/debug/NotificationTest';
+import MyReportsSecurityTest from '../components/debug/MyReportsSecurityTest';
 
 const StatsDebugPage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -40,6 +41,11 @@ const StatsDebugPage: React.FC = () => {
           <div>
             <NotificationTest />
           </div>
+        </div>
+
+        {/* Section Test Sécurité Signalements */}
+        <div className="mt-8">
+          <MyReportsSecurityTest />
         </div>
 
         {/* Instructions */}
