@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { buildApiUrl } from '../config/api';
+import { buildApiUrl, buildImageUrl } from '../config/api';
 import { Users, UserCheck, UserX, Shield, Trash2, Search, Filter, MapPin, Eye, Navigation } from 'lucide-react';
 import ApiUrlDebug from '../components/debug/ApiUrlDebug';
 
@@ -31,20 +31,22 @@ interface WasteReport {
   wasteType: string;
   status: 'pending' | 'collected' | 'not_collected';
   location: {
-    coordinates: [number, number];
+    lat: number;
+    lng: number;
     address?: string;
   };
   images?: {
-    original?: { url: string };
-    medium?: { url: string };
-    thumbnail?: { url: string };
-  };
+    original?: { url: string; filename?: string };
+    medium?: { url: string; filename?: string };
+    thumbnail?: { url: string; filename?: string };
+  } | null;
   userId: {
     _id: string;
     name: string;
     email: string;
   };
   createdAt: string;
+  updatedAt?: string;
 }
 
 const AdminPage: React.FC = () => {
@@ -95,7 +97,9 @@ const AdminPage: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setReports(data.data.wasteReports || data.data);
+        console.log('Données signalements reçues:', data); // Debug
+        const reportsData = data.data.wasteReports || data.data;
+        setReports(reportsData);
       }
     } catch (error) {
       console.error('Erreur chargement signalements:', error);
@@ -163,9 +167,8 @@ const AdminPage: React.FC = () => {
   };
 
   // Ouvrir l'itinéraire vers le signalement
-  const openDirections = (coordinates: [number, number]) => {
-    const [lng, lat] = coordinates;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  const openDirections = (location: { lat: number; lng: number }) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${location.lat},${location.lng}`;
     window.open(url, '_blank');
   };
   const fetchUsers = async () => {
@@ -506,7 +509,7 @@ const AdminPage: React.FC = () => {
                           <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
                             {report.images?.thumbnail?.url ? (
                               <img 
-                                src={report.images.thumbnail.url} 
+                                src={buildImageUrl(report.images.thumbnail.url)} 
                                 alt="Aperçu" 
                                 className="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-80"
                                 onClick={() => setSelectedReport(report)}
@@ -582,14 +585,17 @@ const AdminPage: React.FC = () => {
                       <div>
                         <h4 className="font-semibold text-gray-700 mb-2">Localisation</h4>
                         <div className="space-y-2">
-                          <p><strong>Latitude:</strong> {selectedReport.location.coordinates[1]}</p>
-                          <p><strong>Longitude:</strong> {selectedReport.location.coordinates[0]}</p>
-                          <p><strong>Coordonnées:</strong> {selectedReport.location.coordinates[1].toFixed(6)}, {selectedReport.location.coordinates[0].toFixed(6)}</p>
+                          <p><strong>Latitude:</strong> {selectedReport.location.lat}</p>
+                          <p><strong>Longitude:</strong> {selectedReport.location.lng}</p>
+                          <p><strong>Coordonnées:</strong> {selectedReport.location.lat.toFixed(6)}, {selectedReport.location.lng.toFixed(6)}</p>
+                          {selectedReport.location.address && (
+                            <p><strong>Adresse:</strong> {selectedReport.location.address}</p>
+                          )}
                           
                           {/* Bouton de navigation */}
                           <div className="mt-2">
                             <button 
-                              onClick={() => openDirections(selectedReport.location.coordinates)}
+                              onClick={() => openDirections(selectedReport.location)}
                               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm flex items-center gap-1"
                             >
                               🚗 Obtenir l'itinéraire
@@ -642,14 +648,19 @@ const AdminPage: React.FC = () => {
                       {selectedReport.images?.original?.url ? (
                         <div className="space-y-2">
                           <img 
-                            src={selectedReport.images.original.url} 
+                            src={buildImageUrl(selectedReport.images.original.url)} 
                             alt="Signalement" 
                             className="w-full h-64 object-cover rounded-lg border cursor-pointer hover:opacity-90"
                             onClick={() => {
                               // Ouvrir l'image en plein écran
-                              window.open(selectedReport.images.original.url, '_blank');
+                              window.open(buildImageUrl(selectedReport.images.original.url), '_blank');
                             }}
                           />
+                          {selectedReport.images.original.filename && (
+                            <p className="text-sm text-gray-600">
+                              Fichier: {selectedReport.images.original.filename}
+                            </p>
+                          )}
                           <p className="text-xs text-gray-500 italic">
                             💡 Cliquez sur l'image pour l'agrandir
                           </p>
