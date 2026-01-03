@@ -36,9 +36,23 @@ interface User {
   createdAt: string;
 }
 
+interface CollaborationRequest {
+  _id: string;
+  organizationName: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  type: 'ngo' | 'company' | 'government' | 'educational' | 'other';
+  message?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  createdAt: string;
+}
+
 // Composant principal
 const AdminPanel: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<WasteReport | null>(null);
+  const [selectedCollaboration, setSelectedCollaboration] = useState<CollaborationRequest | null>(null);
 
   // Fetch Signalements
   const fetchReports = async (): Promise<WasteReport[]> => {
@@ -114,6 +128,42 @@ const AdminPanel: React.FC = () => {
     return data.data || [];
   };
 
+  // Fetch Collaborations
+  const fetchCollaborations = async (): Promise<CollaborationRequest[]> => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
+    }
+
+    const response = await fetch(buildApiUrl("/api/collaborations"), {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erreur API collaborations:', response.status, errorText);
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Collaborations reçues:', data);
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Erreur inconnue');
+    }
+    
+    return data.data || [];
+  };
+
   // useQuery
   const {
     data: reports = [],
@@ -126,6 +176,12 @@ const AdminPanel: React.FC = () => {
     isLoading: isLoadingUsers,
     error: usersError,
   } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+
+  const {
+    data: collaborations = [],
+    isLoading: isLoadingCollaborations,
+    error: collaborationsError,
+  } = useQuery({ queryKey: ['collaborations'], queryFn: fetchCollaborations });
 
   // Fonction de mise à jour du statut
   const updateReportStatus = async (reportId: string, newStatus: WasteReport['status']) => {
@@ -157,8 +213,36 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  // Fonction de mise à jour du statut des collaborations
+  const updateCollaborationStatus = async (collaborationId: string, newStatus: CollaborationRequest['status']) => {
+    try {
+      const response = await fetch(buildApiUrl(`/api/collaborations/${collaborationId}/status`), {
+        method: "PATCH",
+        headers: { 
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) throw new Error("Erreur lors de la mise à jour du statut");
+
+      const updated = await response.json();
+      
+      if (updated.success && updated.data) {
+        setSelectedCollaboration(updated.data);
+        window.location.reload(); // Rafraîchir la liste
+      }
+      
+      alert("Statut de collaboration mis à jour avec succès !");
+    } catch (error) {
+      console.error(error);
+      alert("Échec de la mise à jour du statut de collaboration !");
+    }
+  };
+
   // Affichage conditionnel
-  if (isLoadingReports || isLoadingUsers) {
+  if (isLoadingReports || isLoadingUsers || isLoadingCollaborations) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
@@ -169,8 +253,8 @@ const AdminPanel: React.FC = () => {
     );
   }
   
-  if (reportsError || usersError) {
-    const error = reportsError || usersError as Error;
+  if (reportsError || usersError || collaborationsError) {
+    const error = (reportsError || usersError || collaborationsError) as Error;
     const isAuthError = error.message.includes('Session expirée') || error.message.includes('authentification manquant');
     
     return (
@@ -222,6 +306,7 @@ const AdminPanel: React.FC = () => {
         <TabsList className="flex mb-4">
           <TabsTrigger value="reports" className="flex-1">Signalements</TabsTrigger>
           <TabsTrigger value="users" className="flex-1">Utilisateurs</TabsTrigger>
+          <TabsTrigger value="collaborations" className="flex-1">Collaborations</TabsTrigger>
         </TabsList>
 
         {/* Signalements */}
@@ -466,6 +551,195 @@ const AdminPanel: React.FC = () => {
               </tbody>
             </table>
           </div>
+        </TabsContent>
+
+        {/* Collaborations */}
+        <TabsContent value="collaborations" className="p-1">
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr className="border-b">
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Date</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Organisation</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">Contact</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">Type</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Statut</th>
+                  <th className="py-3 px-2 sm:px-4 text-xs sm:text-sm">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {collaborations.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-4">Aucune demande de collaboration</td></tr>
+                ) : (
+                  collaborations.map(collaboration => (
+                    <tr key={collaboration._id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        {new Date(collaboration.submittedAt).toLocaleDateString('fr-FR')}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium">
+                        {collaboration.organizationName}
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden sm:table-cell">
+                        <div>
+                          <div>{collaboration.contactPerson}</div>
+                          <div className="text-gray-500">{collaboration.email}</div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm hidden md:table-cell">
+                        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs">
+                          {collaboration.type === 'ngo' ? '🤝 ONG' :
+                           collaboration.type === 'company' ? '🏢 Entreprise' :
+                           collaboration.type === 'government' ? '🏛️ Gouvernement' :
+                           collaboration.type === 'educational' ? '🎓 Éducation' : '📋 Autre'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          collaboration.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          collaboration.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {collaboration.status === 'pending' ? 'En attente' :
+                           collaboration.status === 'approved' ? 'Approuvée' : 'Rejetée'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <button 
+                          onClick={() => setSelectedCollaboration(collaboration)} 
+                          className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-300 rounded hover:bg-blue-50"
+                        >
+                          Voir
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Modale Collaboration */}
+          {selectedCollaboration && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto p-4 sm:p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-semibold">Demande de Collaboration</h3>
+                  <button 
+                    onClick={() => setSelectedCollaboration(null)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Informations de l'organisation */}
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-3">Informations de l'organisation</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Organisation</p>
+                        <p className="font-medium">{selectedCollaboration.organizationName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Type</p>
+                        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                          {selectedCollaboration.type === 'ngo' ? '🤝 ONG/Association' :
+                           selectedCollaboration.type === 'company' ? '🏢 Entreprise' :
+                           selectedCollaboration.type === 'government' ? '🏛️ Institution Gouvernementale' :
+                           selectedCollaboration.type === 'educational' ? '🎓 Établissement Éducatif' : '📋 Autre'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Personne de contact</p>
+                        <p className="font-medium">{selectedCollaboration.contactPerson}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Statut actuel</p>
+                        <span className={`px-2 py-1 rounded-full text-sm ${
+                          selectedCollaboration.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          selectedCollaboration.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {selectedCollaboration.status === 'pending' ? 'En attente' :
+                           selectedCollaboration.status === 'approved' ? 'Approuvée' : 'Rejetée'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact */}
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-3">Informations de contact</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Email</p>
+                        <a href={`mailto:${selectedCollaboration.email}`} className="text-blue-600 hover:text-blue-800">
+                          {selectedCollaboration.email}
+                        </a>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Téléphone</p>
+                        <a href={`tel:${selectedCollaboration.phone}`} className="text-blue-600 hover:text-blue-800">
+                          {selectedCollaboration.phone}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Message */}
+                  {selectedCollaboration.message && (
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-3">Message</h4>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-gray-700 whitespace-pre-wrap">{selectedCollaboration.message}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dates */}
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-3">Informations temporelles</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-600">Date de soumission</p>
+                        <p>{new Date(selectedCollaboration.submittedAt).toLocaleString('fr-FR')}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Dernière mise à jour</p>
+                        <p>{new Date(selectedCollaboration.createdAt).toLocaleString('fr-FR')}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-3">Actions</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <button 
+                        onClick={() => updateCollaborationStatus(selectedCollaboration._id, 'pending')} 
+                        className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm"
+                      >
+                        Marquer en attente
+                      </button>
+                      <button 
+                        onClick={() => updateCollaborationStatus(selectedCollaboration._id, 'approved')} 
+                        className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                      >
+                        Approuver
+                      </button>
+                      <button 
+                        onClick={() => updateCollaborationStatus(selectedCollaboration._id, 'rejected')} 
+                        className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                      >
+                        Rejeter
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

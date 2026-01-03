@@ -27,7 +27,12 @@ const collaborationRequestSchema = new mongoose.Schema({
     type: {
         type: String,
         required: [true, 'Le type est obligatoire'],
-        enum: ['ONG', 'Mairie', 'Entreprise']
+        enum: ['ngo', 'company', 'government', 'educational', 'other']
+    },
+    message: {
+        type: String,
+        trim: true,
+        maxlength: [1000, 'Le message ne peut pas dépasser 1000 caractères']
     },
     status: {
         type: String,
