@@ -100,28 +100,48 @@ const AdminPage: React.FC = () => {
   // Fonction de mise à jour du statut (copié de l'ancien AdminPanel)
   const updateReportStatus = async (reportId: string, newStatus: WasteReport['status']) => {
     try {
+      console.log('🔄 Mise à jour statut:', reportId, newStatus);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Session expirée. Veuillez vous reconnecter.');
+        return;
+      }
+
       const response = await fetch(buildApiUrl(`/api/waste/${reportId}/status`), {
         method: "PATCH",
         headers: { 
           "Content-Type": "application/json",
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ status: newStatus }),
       });
 
-      if (!response.ok) throw new Error("Erreur lors de la mise à jour du statut");
+      console.log('📊 Réponse API:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Erreur API:', errorData);
+        throw new Error(errorData.error || `Erreur ${response.status}: ${response.statusText}`);
+      }
 
       const updated = await response.json();
+      console.log('✅ Mise à jour réussie:', updated);
       
       if (updated.success && updated.data) {
+        // Mettre à jour le signalement sélectionné
         setSelectedReport(updated.data);
-        window.location.reload(); // Rafraîchir la liste
+        
+        // Recharger la page pour voir les changements
+        window.location.reload();
+      } else {
+        throw new Error('Réponse API invalide');
       }
       
       alert("Statut mis à jour avec succès !");
     } catch (error) {
-      console.error(error);
-      alert("Échec de la mise à jour du statut !");
+      console.error('❌ Erreur complète:', error);
+      alert(`Échec de la mise à jour du statut: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   };
 
