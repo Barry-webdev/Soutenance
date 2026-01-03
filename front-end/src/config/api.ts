@@ -20,7 +20,9 @@ const API_CONFIG = {
 
 // Helper pour construire les URLs complètes
 export const buildApiUrl = (endpoint: string): string => {
-  return `${API_CONFIG.BASE_URL}${endpoint}`;
+  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  console.log('🌐 API URL construite:', url);
+  return url;
 };
 
 // Helper pour les images
@@ -28,6 +30,22 @@ export const buildImageUrl = (imagePath: string): string => {
   if (!imagePath) return '';
   if (imagePath.startsWith('http')) return imagePath;
   return `${API_CONFIG.BASE_URL}${imagePath}`;
+};
+
+// Helper pour tester la connectivité
+export const testApiConnection = async (): Promise<boolean> => {
+  try {
+    const response = await fetch(buildApiUrl('/api/health'), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('❌ Test de connexion API échoué:', error);
+    return false;
+  }
 };
 
 // Export de la configuration pour usage direct

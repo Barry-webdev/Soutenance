@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { buildApiUrl, buildImageUrl } from '../config/api';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, UserCheck, UserX, Trash2, Search, Filter } from 'lucide-react';
+import { apiCall, updateStatus, ApiError } from '../utils/apiUtils';
 
 // Interfaces
 interface User {
@@ -79,6 +80,21 @@ const AdminPage: React.FC = () => {
     };
   }, []);
 
+  // Test de connectivité API
+  useEffect(() => {
+    const checkApiConnection = async () => {
+      console.log('🔍 Test de connectivité API...');
+      try {
+        const response = await apiCall('/api/health');
+        console.log('📡 Connectivité API: ✅ OK');
+      } catch (error) {
+        console.warn('⚠️ Problème de connectivité détecté avec l\'API:', error);
+      }
+    };
+
+    checkApiConnection();
+  }, []);
+
   if (hasError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -116,70 +132,43 @@ const AdminPage: React.FC = () => {
 
   // Fetch Signalements
   const fetchReports = async (): Promise<WasteReport[]> => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('Token manquant');
-
-    const response = await fetch(buildApiUrl("/api/waste"), {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erreur API signalements:', errorText);
-      throw new Error(`Erreur ${response.status}: ${errorText}`);
+    try {
+      const response = await apiCall('/api/waste');
+      
+      // Protection contre les données manquantes
+      const reports = response.data?.wasteReports || response.data || [];
+      
+      // Vérifier que chaque signalement a les données nécessaires
+      return reports.map((report: any) => ({
+        ...report,
+        userId: report.userId || { _id: 'unknown', name: 'Utilisateur supprimé', email: 'N/A' }
+      }));
+    } catch (error) {
+      console.error('❌ Erreur récupération signalements:', error);
+      throw error;
     }
-    
-    const data = await response.json();
-    console.log('📊 Données signalements reçues:', data);
-    
-    // Protection contre les données manquantes
-    const reports = data.data?.wasteReports || data.data || [];
-    
-    // Vérifier que chaque signalement a les données nécessaires
-    return reports.map((report: any) => ({
-      ...report,
-      userId: report.userId || { _id: 'unknown', name: 'Utilisateur supprimé', email: 'N/A' }
-    }));
   };
 
   // Fetch Utilisateurs (seulement pour super admin)
   const fetchUsers = async (): Promise<User[]> => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('Token manquant');
-
-    const response = await fetch(buildApiUrl("/api/users/manage"), {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erreur API utilisateurs:', errorText);
-      throw new Error(`Erreur ${response.status}: ${errorText}`);
+    try {
+      const response = await apiCall('/api/users/manage');
+      return response.data || [];
+    } catch (error) {
+      console.error('❌ Erreur récupération utilisateurs:', error);
+      throw error;
     }
-    
-    const data = await response.json();
-    console.log('📊 Données utilisateurs reçues:', data);
-    return data.data || [];
   };
 
   // Fetch Collaborations (seulement pour super admin)
   const fetchCollaborations = async (): Promise<CollaborationRequest[]> => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('Token manquant');
-
-    const response = await fetch(buildApiUrl("/api/collaborations"), {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erreur API collaborations:', errorText);
-      throw new Error(`Erreur ${response.status}: ${errorText}`);
+    try {
+      const response = await apiCall('/api/collaborations');
+      return response.data || [];
+    } catch (error) {
+      console.error('❌ Erreur récupération collaborations:', error);
+      throw error;
     }
-    
-    const data = await response.json();
-    console.log('📊 Données collaborations reçues:', data);
-    return data.data || [];
   };
 
   // useQuery
@@ -223,44 +212,11 @@ const AdminPage: React.FC = () => {
     try {
       console.log('🔄 Mise à jour statut:', reportId, newStatus);
       
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('Session expirée. Veuillez vous reconnecter.');
-        return;
-      }
-
-      const response = await fetch(buildApiUrl(`/api/waste/${reportId}/status`), {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      console.log('📊 Réponse API:', response.status, response.statusText);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Erreur API (texte):', errorText);
-        
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { error: errorText || `Erreur ${response.status}` };
-        }
-        
-        console.error('❌ Erreur API (JSON):', errorData);
-        throw new Error(errorData.error || `Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      const updated = await response.json();
-      console.log('✅ Mise à jour réussie:', updated);
+      const response = await updateStatus(`/api/waste/${reportId}/status`, newStatus, reportId);
       
-      if (updated.success && updated.data) {
+      if (response.success && response.data) {
         // Mettre à jour le signalement sélectionné
-        setSelectedReport(updated.data);
+        setSelectedReport(response.data);
         
         // Invalider et refetch les queries
         await queryClient.invalidateQueries({ queryKey: ['waste_reports'] });
@@ -271,8 +227,13 @@ const AdminPage: React.FC = () => {
       }
       
     } catch (error) {
-      console.error('❌ Erreur complète:', error);
-      alert(`Échec de la mise à jour du statut: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      console.error('❌ Erreur mise à jour statut:', error);
+      
+      const errorMessage = error instanceof ApiError 
+        ? error.message 
+        : 'Erreur inconnue lors de la mise à jour';
+      
+      alert(`Échec de la mise à jour du statut: ${errorMessage}`);
     } finally {
       setUpdatingStatus(null);
     }
@@ -280,39 +241,37 @@ const AdminPage: React.FC = () => {
 
   // Gérer une demande de collaboration
   const handleCollaborationStatus = async (collaborationId: string, status: 'approved' | 'rejected') => {
+    if (processingCollaboration) {
+      alert('Une opération est déjà en cours...');
+      return;
+    }
+
     setProcessingCollaboration(collaborationId);
     
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('Session expirée. Veuillez vous reconnecter.');
-        return;
-      }
+      console.log('🔄 Mise à jour collaboration:', collaborationId, status);
+      
+      const response = await updateStatus(`/api/collaborations/${collaborationId}/status`, status, collaborationId);
 
-      const response = await fetch(buildApiUrl(`/api/collaborations/${collaborationId}/status`), {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        window.location.reload();
+      if (response.success) {
+        // Invalider et refetch les queries
+        await queryClient.invalidateQueries({ queryKey: ['collaborations'] });
+        
         const message = status === 'approved' 
-          ? `✅ Collaboration approuvée ! ${data.message || 'L\'utilisateur a été promu admin.'}`
+          ? `✅ Collaboration approuvée ! ${response.message || 'L\'utilisateur a été promu admin.'}`
           : '❌ Collaboration rejetée.';
         alert(message);
       } else {
-        console.error('Erreur API:', data);
-        alert(`Erreur: ${data.error || 'Erreur inconnue'}`);
+        throw new Error(response.error || 'Réponse API invalide');
       }
     } catch (error) {
-      console.error('Erreur gestion collaboration:', error);
-      alert('Erreur de connexion. Vérifiez votre connexion internet.');
+      console.error('❌ Erreur gestion collaboration:', error);
+      
+      const errorMessage = error instanceof ApiError 
+        ? error.message 
+        : 'Erreur inconnue lors de la gestion de la collaboration';
+      
+      alert(`Erreur: ${errorMessage}`);
     } finally {
       setProcessingCollaboration(null);
     }
