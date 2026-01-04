@@ -49,7 +49,9 @@ class NotificationService {
      */
     static async notifyAdminsNewWasteReport(wasteReport) {
         try {
-            const admins = await User.find({ role: 'admin' }).select('_id name email');
+            const admins = await User.find({ 
+                role: { $in: ['admin', 'super_admin'] } 
+            }).select('_id name email');
             const user = await User.findById(wasteReport.userId).select('name email');
             
             // Vérifier que wasteReport et description existent
@@ -168,7 +170,9 @@ class NotificationService {
      */
     static async notifyAdminsNewCollaboration(collaboration) {
         try {
-            const admins = await User.find({ role: 'admin' }).select('_id name email');
+            const admins = await User.find({ 
+                role: { $in: ['admin', 'super_admin'] } 
+            }).select('_id name email');
             
             const notifications = admins.map(admin => ({
                 userId: admin._id,
