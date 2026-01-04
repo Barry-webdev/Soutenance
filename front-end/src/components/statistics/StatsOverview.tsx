@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { Trash2, CheckCircle, Clock, AlertCircle, Percent, FileText } from 'lucide-react';
+import { Trash2, CheckCircle, Clock, AlertCircle, Percent, FileText, RefreshCw } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { buildApiUrl } from '../../config/api';
 
@@ -43,75 +44,87 @@ interface StatsData {
 }
 
 const StatsOverview: React.FC = () => {
-  const [stats, setStats] = useState<StatsData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'public' | 'admin'>('public');
   const pdfRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const userRole = user.role || 'citizen';
-        
-        if (!token) {
-          throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
-        }
-        
-        // Déterminer l'endpoint selon le rôle
-        const endpoint = userRole === 'admin' ? '/api/stats' : '/api/stats/public';
-        
-        const response = await fetch(buildApiUrl(endpoint), {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.status === 401) {
-          // Token expiré ou invalide
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          throw new Error('Session expirée. Veuillez vous reconnecter.');
-        }
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Erreur API stats:', response.status, errorText);
-          throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-        }
-        
-        const data: StatsData = await response.json();
-        console.log('Statistiques reçues:', data);
-        
-        if (!data.success) {
-          throw new Error(data.error || 'Erreur inconnue');
-        }
-        
-        setStats(data);
-        
-        // Définir le mode d'affichage selon les données disponibles
-        if (data.data.users) {
-          setViewMode('admin');
-        } else {
-          setViewMode('public');
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error("❌ Erreur de récupération des statistiques :", error);
-        setStats({ 
-          success: false, 
-          data: {}, 
-          error: error.message 
-        } as any);
-        setLoading(false);
+  // Fonction pour récupérer les statistiques
+  const fetchStats = async (): Promise<StatsData> => {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userRole = user.role || 'citizen';
+    
+    if (!token) {
+      throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
+    }
+    
+    // Déterminer l'endpoint selon le rôle
+    const endpoint = (userRole === 'admin' || userRole === 'super_admin') ? '/api/stats' : '/api/stats/public';
+    
+    const response = await fetch(buildApiUrl(endpoint), {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-    };
+    });
+    
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Erreur API stats:', response.status, errorText);
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+    
+    const data: StatsData = await response.json();
+    console.log('Statistiques reçues:', data);
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Erreur inconnue');
+    }
+    
+    return data;
+  };
 
-    fetchStats();
-  }, []);
+  // React Query pour les statistiques avec actualisation automatique
+  const { data: stats, isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['statistics_overview'],
+    queryFn: fetchStats,
+    refetchInterval: 60000, // Actualiser toutes les 60 secondes
+    refetchIntervalInBackground: true
+  });
+
+  // Effet pour définir le mode d'affichage selon les données
+  React.useEffect(() => {
+    if (stats?.data.users) {
+      setViewMode('admin');
+    } else if (stats?.data.summary) {
+      setViewMode('public');
+    }
+  }, [stats]);
+
+  // Gestion des erreurs
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-red-600 mb-4">
+          <AlertCircle size={48} className="mx-auto mb-2" />
+          <p className="text-lg font-semibold">Erreur de chargement</p>
+          <p className="text-sm">{error.message}</p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
 
   // Calculer les données pour l'affichage
   const getDisplayData = () => {
@@ -233,11 +246,30 @@ const StatsOverview: React.FC = () => {
           <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
             {viewMode === 'admin' ? 'Vue complète' : 'Vue publique'}
           </span>
+          {loading && (
+            <div className="flex items-center text-sm text-blue-600">
+              <svg className="animate-spin w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
+                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
+              </svg>
+              Mise à jour...
+            </div>
+          )}
         </div>
-        <button onClick={handleExportPDF} className="btn-secondary flex items-center gap-2">
-          <FileText className="w-4 h-4" />
-          Exporter en PDF
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => refetch()}
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50"
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </button>
+          <button onClick={handleExportPDF} className="btn-secondary flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Exporter en PDF
+          </button>
+        </div>
       </div>
 
       <div ref={pdfRef} className="space-y-6">
