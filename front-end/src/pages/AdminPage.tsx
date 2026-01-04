@@ -190,21 +190,27 @@ const AdminPage: React.FC = () => {
   const { data: reports = [], isLoading: isLoadingReports, error: reportsError } = 
     useQuery({ 
       queryKey: ['waste_reports'], 
-      queryFn: fetchReports
+      queryFn: fetchReports,
+      refetchInterval: 30000, // Rafraîchir toutes les 30 secondes
+      refetchIntervalInBackground: true // Continuer même si l'onglet n'est pas actif
     });
 
   const { data: users = [], isLoading: isLoadingUsers, error: usersError } = 
     useQuery({ 
       queryKey: ['users'], 
       queryFn: fetchUsers,
-      enabled: user?.role === 'super_admin'
+      enabled: user?.role === 'super_admin',
+      refetchInterval: 60000, // Rafraîchir toutes les 60 secondes
+      refetchIntervalInBackground: true
     });
 
   const { data: collaborations = [], isLoading: isLoadingCollaborations, error: collaborationsError } = 
     useQuery({ 
       queryKey: ['collaborations'], 
       queryFn: fetchCollaborations,
-      enabled: user?.role === 'super_admin'
+      enabled: user?.role === 'super_admin',
+      refetchInterval: 60000, // Rafraîchir toutes les 60 secondes
+      refetchIntervalInBackground: true
     });
 
   // Debug logging
@@ -437,8 +443,29 @@ const AdminPage: React.FC = () => {
         {/* Contenu des onglets */}
         {(activeTab === 'reports' || user?.role !== 'super_admin') && (
           <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold">Signalements ({reports.length})</h2>
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <div className="flex items-center">
+                <h2 className="text-xl font-semibold">Signalements ({reports.length})</h2>
+                {isLoadingReports && (
+                  <div className="ml-3 flex items-center text-sm text-blue-600">
+                    <svg className="animate-spin w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
+                      <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path>
+                    </svg>
+                    Mise à jour...
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['waste_reports'] })}
+                className="flex items-center px-3 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50"
+                disabled={isLoadingReports}
+              >
+                <svg className={`w-4 h-4 mr-2 ${isLoadingReports ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Actualiser
+              </button>
             </div>
 
             <div className="overflow-x-auto">
