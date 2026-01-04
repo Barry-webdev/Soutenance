@@ -199,9 +199,6 @@ const Navbar: React.FC = () => {
                 )}
               </div>
             )}
-                )}
-              </div>
-            )}
 
             {/* Profil */}
             <div className="relative group">
