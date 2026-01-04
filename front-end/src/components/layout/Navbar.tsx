@@ -173,8 +173,6 @@ const Navbar: React.FC = () => {
 
         {isAuthenticated ? (
           <>
-        {isAuthenticated ? (
-          <>
             {/* Notifications - SEULEMENT pour admins et super admins */}
             {(user?.role === 'admin' || user?.role === 'super_admin') && (
               <div className="relative">
@@ -198,6 +196,9 @@ const Navbar: React.FC = () => {
                     userId={user.id}
                     onClose={() => setShowNotifications(false)}
                   />
+                )}
+              </div>
+            )}
                 )}
               </div>
             )}
