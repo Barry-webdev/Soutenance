@@ -27,7 +27,9 @@ router.post('/',
     handleUploadError
 );
 router.get('/my-reports', authenticate, requireRoles(['citizen', 'partner']), getUserWasteReports);
-router.get('/map', authenticate, getWasteReportsMap);
+
+// Routes admin et partenaires seulement
+router.get('/map', authenticate, requireRoles(['admin', 'super_admin', 'partner']), getWasteReportsMap);
 
 // Routes admin seulement
 router.get('/', authenticate, requireAdmin, getWasteReports);

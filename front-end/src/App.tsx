@@ -53,7 +53,11 @@ function App() {
                     <MyReportsPage />
                   </ProtectedRoute>
                 } />
-                <Route path="/map" element={<MapPage />} />
+                <Route path="/map" element={
+                  <ProtectedRoute requiredRole={["admin", "super_admin", "partner"]}>
+                    <MapPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/profile" element={
                   <ProtectedRoute>
                     <ProfilePage />
@@ -64,7 +68,11 @@ function App() {
                     <AdminPage />
                   </ProtectedRoute>
                 } />
-                <Route path="/statistics" element={<StatisticsPage />} />
+                <Route path="/statistics" element={
+                  <ProtectedRoute requiredRole={["admin", "super_admin"]}>
+                    <StatisticsPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/help" element={<HelpPage />} />
                 <Route path="/collaboration" element={<CollaborationPage />} />
