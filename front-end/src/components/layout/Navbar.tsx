@@ -129,9 +129,6 @@ const Navbar: React.FC = () => {
             <Link to="/statistics" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
               Statistiques
             </Link>
-            <Link to="/collaboration" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
-              🤝 Collaborations
-            </Link>
             <Link to="/admin" className="text-gray-700 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">
               👥 Gestion
             </Link>
@@ -318,13 +315,6 @@ const Navbar: React.FC = () => {
               <div className="flex items-center">
                 <BarChart2 size={18} className="mr-2" />Statistiques
               </div>
-            </Link>
-            <Link
-              to="/collaboration"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50"
-              onClick={toggleMenu}
-            >
-              <div className="flex items-center">🤝 Collaborations</div>
             </Link>
             <Link
               to="/admin"
