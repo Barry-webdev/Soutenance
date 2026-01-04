@@ -418,6 +418,7 @@ const Navbar: React.FC = () => {
     </div>
   )}
 </nav>
+  );
 };
 
 export default Navbar;
