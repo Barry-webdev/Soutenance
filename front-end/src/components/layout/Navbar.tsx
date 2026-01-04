@@ -18,7 +18,14 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  const toggleNotifications = () => setShowNotifications(!showNotifications);
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+    
+    // Réinitialiser le compteur seulement quand on OUVRE le dropdown (pas quand on le ferme)
+    if (!showNotifications && unreadCount > 0) {
+      setUnreadCount(0);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -26,13 +33,14 @@ const Navbar: React.FC = () => {
     setIsMenuOpen(false);
   };
 
-  // ✅ Rafraîchissement automatique du nombre de notifications non lues
+  // ✅ Rafraîchissement automatique du nombre de notifications non lues - SEULEMENT pour admins
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        if (user?.id) {
+        // Vérifier que l'utilisateur est admin ou super admin
+        if (user?.id && (user?.role === 'admin' || user?.role === 'super_admin')) {
           const token = localStorage.getItem('token');
-          console.log('🔔 Récupération notifications pour:', user);
+          console.log('🔔 Récupération notifications pour admin:', user);
           console.log('🔑 Token présent:', !!token);
           
           const res = await fetch(buildApiUrl('/api/notifications/unread-count'), {
@@ -55,6 +63,9 @@ const Navbar: React.FC = () => {
             console.warn('⚠️ Erreur API notifications:', res.status, errorText);
             setUnreadCount(0);
           }
+        } else {
+          // Réinitialiser le compteur pour les non-admins
+          setUnreadCount(0);
         }
       } catch (error) {
         console.error('❌ Erreur lors du chargement des notifications non lues', error);
@@ -64,8 +75,15 @@ const Navbar: React.FC = () => {
 
     fetchUnreadCount(); // Appel initial
 
-    const interval = setInterval(fetchUnreadCount, 5000); // Mise à jour toutes les 5 secondes
-    return () => clearInterval(interval);
+    // Mise à jour toutes les 5 secondes seulement pour les admins
+    let interval: NodeJS.Timeout | null = null;
+    if (user?.role === 'admin' || user?.role === 'super_admin') {
+      interval = setInterval(fetchUnreadCount, 5000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [user, setUnreadCount]);
 
   if (isLoading) return null;
@@ -155,30 +173,34 @@ const Navbar: React.FC = () => {
 
         {isAuthenticated ? (
           <>
-            {/* Notifications */}
-            <div className="relative">
-              <button
-                onClick={toggleNotifications}
-                className="text-gray-700 hover:text-green-700 p-1 rounded-full relative"
-              >
-                <Bell size={20} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">
-                    {unreadCount}
-                  </span>
+        {isAuthenticated ? (
+          <>
+            {/* Notifications - SEULEMENT pour admins et super admins */}
+            {(user?.role === 'admin' || user?.role === 'super_admin') && (
+              <div className="relative">
+                <button
+                  onClick={toggleNotifications}
+                  className="text-gray-700 hover:text-green-700 p-1 rounded-full relative"
+                >
+                  <Bell size={20} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                  {/* Debug: afficher toujours un petit point pour voir si le composant fonctionne */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                  )}
+                </button>
+                {showNotifications && user?.id && (
+                  <NotificationDropdown
+                    userId={user.id}
+                    onClose={() => setShowNotifications(false)}
+                  />
                 )}
-                {/* Debug: afficher toujours un petit point pour voir si le composant fonctionne */}
-                {process.env.NODE_ENV === 'development' && (
-                  <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
-                )}
-              </button>
-              {showNotifications && user?.id && (
-                <NotificationDropdown
-                  userId={user.id}
-                  onClose={() => setShowNotifications(false)}
-                />
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Profil */}
             <div className="relative group">
