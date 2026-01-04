@@ -58,7 +58,7 @@ export const getPublicStats = async (req, res) => {
 
         // Audit pour consultation des statistiques publiques
         await logManualAudit(
-            'STATS_VIEW_PUBLIC',
+            'STATS_VIEW_GENERAL',
             req.user,
             `Consultation des statistiques publiques`,
             { 
@@ -177,7 +177,7 @@ export const getStats = async (req, res) => {
 
         // Audit pour consultation des statistiques générales
         await logManualAudit(
-            'STATS_VIEW_GENERAL',
+            'STATS_VIEW_ADVANCED',
             req.user,
             `Consultation des statistiques générales`,
             { 
@@ -252,7 +252,7 @@ export const getDashboardStats = async (req, res) => {
 
         // Audit pour consultation du dashboard
         await logManualAudit(
-            'DASHBOARD_VIEW',
+            'STATS_VIEW_DASHBOARD',
             req.user,
             `Consultation du tableau de bord administrateur`,
             { 

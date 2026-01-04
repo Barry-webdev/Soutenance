@@ -16,7 +16,7 @@ const HomePage: React.FC = () => {
     if (isAuthenticated && (user?.role === 'admin' || user?.role === 'super_admin')) {
       const fetchStats = async () => {
         try {
-          const response = await fetch(buildApiUrl('/api/stats/dashboard'), {
+          const response = await fetch(buildApiUrl('/api/stats/public'), {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
@@ -24,6 +24,7 @@ const HomePage: React.FC = () => {
           
           if (response.ok) {
             const data = await response.json();
+            console.log('📊 Stats data received:', data);
             setStats(data.data);
           } else {
             console.warn('⚠️ Impossible de charger les statistiques');
@@ -168,10 +169,10 @@ const HomePage: React.FC = () => {
               </p>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {[
-                  { value: stats?.signalements ?? '...', label: 'Signalements' },
-                  { value: stats?.resolus ?? '...', label: 'Problèmes résolus' },
-                  { value: stats?.utilisateurs ?? '...', label: 'Utilisateurs actifs' },
-                  { value: stats?.quartiers ?? '...', label: 'Quartiers couverts' },
+                  { value: stats?.summary?.totalReports ?? '...', label: 'Signalements' },
+                  { value: stats?.summary?.collectedReports ?? '...', label: 'Problèmes résolus' },
+                  { value: stats?.summary?.totalCitizens ?? '...', label: 'Utilisateurs actifs' },
+                  { value: stats?.summary?.activePartnerships ?? '...', label: 'Partenariats actifs' },
                 ].map((stat, index) => (
                   <div key={index} className="text-center p-3 sm:p-4 bg-gray-50 rounded-lg">
                     <p className="text-xl sm:text-2xl font-bold text-green-700">{stat.value}</p>
