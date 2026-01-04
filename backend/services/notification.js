@@ -267,7 +267,7 @@ class NotificationService {
         try {
             const notification = await Notification.findOneAndUpdate(
                 { _id: notificationId, userId: userId },
-                { isRead: true },
+                { read: true },
                 { new: true }
             );
 
@@ -284,8 +284,8 @@ class NotificationService {
     static async markAllAsRead(userId) {
         try {
             const result = await Notification.updateMany(
-                { userId: userId, isRead: false },
-                { isRead: true }
+                { userId: userId, read: false },
+                { read: true }
             );
 
             console.log(`📭 ${result.modifiedCount} notifications marquées comme lues pour l'utilisateur ${userId}`);
@@ -306,7 +306,7 @@ class NotificationService {
 
             const filter = { userId: userId };
             if (unreadOnly) {
-                filter.isRead = false;
+                filter.read = false;
             }
 
             const notifications = await Notification.find(filter)
@@ -317,7 +317,7 @@ class NotificationService {
             const total = await Notification.countDocuments(filter);
             const unreadCount = await Notification.countDocuments({ 
                 userId: userId, 
-                isRead: false 
+                read: false 
             });
 
             return {
@@ -345,7 +345,7 @@ class NotificationService {
 
             const result = await Notification.deleteMany({
                 createdAt: { $lt: cutoffDate },
-                isRead: true
+                read: true
             });
 
             console.log(`🧹 ${result.deletedCount} anciennes notifications supprimées`);

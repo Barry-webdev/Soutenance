@@ -25,7 +25,8 @@ export const getUserNotifications = async (req, res) => {
 
         res.json({
             success: true,
-            data: result
+            data: result.notifications,
+            pagination: result.pagination
         });
     } catch (error) {
         console.error('❌ Erreur récupération notifications:', error);

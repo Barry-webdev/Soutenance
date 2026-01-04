@@ -21,10 +21,8 @@ const Navbar: React.FC = () => {
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
     
-    // Réinitialiser le compteur seulement quand on OUVRE le dropdown (pas quand on le ferme)
-    if (!showNotifications && unreadCount > 0) {
-      setUnreadCount(0);
-    }
+    // Ne pas réinitialiser automatiquement le compteur
+    // Il sera réinitialisé seulement quand l'utilisateur marque les notifications comme lues
   };
 
   const handleLogout = () => {
