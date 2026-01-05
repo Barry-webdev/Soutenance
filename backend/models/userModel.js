@@ -40,12 +40,14 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Hash du mot de passe avant sauvegarde
+// Hash du mot de passe avant sauvegarde - Version optimisée pour la production
 userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) return next();
     
     try {
-        const salt = await bcrypt.genSalt(12);
+        // Réduction des rounds pour améliorer les performances en production
+        // 10 rounds = ~10ms, 12 rounds = ~60ms, 14 rounds = ~250ms
+        const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);
         next();
     } catch (error) {

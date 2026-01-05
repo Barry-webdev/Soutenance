@@ -2,22 +2,29 @@ import User from '../models/userModel.js';
 import { logManualAudit } from '../middlewares/auditMiddleware.js';
 
 /**
- * Connexion utilisateur avec JWT
+ * Connexion utilisateur avec JWT - Version optimisée
  */
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        const user = await User.findOne({ email });
+        // Recherche optimisée avec sélection des champs nécessaires seulement
+        const user = await User.findOne({ email }).select('+password');
         
         if (!user || !(await user.comparePassword(password))) {
-            // Audit pour tentative de connexion échouée
-            await logManualAudit(
-                'USER_LOGIN_FAILED',
-                { _id: 'anonymous', email, role: 'unknown' },
-                `Tentative de connexion échouée pour l'email: ${email}`,
-                { attemptEmail: email, reason: 'Email ou mot de passe incorrect' }
-            );
+            // Audit asynchrone pour ne pas bloquer la réponse
+            setImmediate(async () => {
+                try {
+                    await logManualAudit(
+                        'USER_LOGIN_FAILED',
+                        { _id: 'anonymous', email, role: 'unknown' },
+                        `Tentative de connexion échouée pour l'email: ${email}`,
+                        { attemptEmail: email, reason: 'Email ou mot de passe incorrect' }
+                    );
+                } catch (auditError) {
+                    console.warn('⚠️ Erreur audit non bloquante:', auditError.message);
+                }
+            });
             
             return res.status(401).json({ 
                 success: false,
@@ -26,13 +33,19 @@ export const login = async (req, res) => {
         }
 
         if (!user.isActive) {
-            // Audit pour compte désactivé
-            await logManualAudit(
-                'USER_LOGIN_DISABLED',
-                user,
-                `Tentative de connexion avec compte désactivé: ${email}`,
-                { reason: 'Compte désactivé' }
-            );
+            // Audit asynchrone
+            setImmediate(async () => {
+                try {
+                    await logManualAudit(
+                        'USER_LOGIN_DISABLED',
+                        user,
+                        `Tentative de connexion avec compte désactivé: ${email}`,
+                        { reason: 'Compte désactivé' }
+                    );
+                } catch (auditError) {
+                    console.warn('⚠️ Erreur audit non bloquante:', auditError.message);
+                }
+            });
             
             return res.status(403).json({ 
                 success: false,
@@ -42,14 +55,7 @@ export const login = async (req, res) => {
 
         const token = user.generateAuthToken();
 
-        // Audit pour connexion réussie
-        await logManualAudit(
-            'USER_LOGIN',
-            user,
-            `Connexion réussie de l'utilisateur: ${user.name}`,
-            { loginMethod: 'email' }
-        );
-
+        // Réponse immédiate
         res.json({
             success: true,
             message: 'Connexion réussie',
@@ -64,16 +70,37 @@ export const login = async (req, res) => {
                 }
             }
         });
+
+        // Audit asynchrone après la réponse
+        setImmediate(async () => {
+            try {
+                await logManualAudit(
+                    'USER_LOGIN',
+                    user,
+                    `Connexion réussie de l'utilisateur: ${user.name}`,
+                    { loginMethod: 'email' }
+                );
+            } catch (auditError) {
+                console.warn('⚠️ Erreur audit non bloquante:', auditError.message);
+            }
+        });
+
     } catch (error) {
         console.error('❌ Erreur connexion:', error);
         
-        // Audit pour erreur serveur lors de la connexion
-        await logManualAudit(
-            'SYSTEM_ERROR',
-            { _id: 'system', email: 'system', role: 'system' },
-            `Erreur serveur lors de la connexion: ${error.message}`,
-            { error: error.message, endpoint: '/auth/login' }
-        );
+        // Audit asynchrone pour erreur
+        setImmediate(async () => {
+            try {
+                await logManualAudit(
+                    'SYSTEM_ERROR',
+                    { _id: 'system', email: 'system', role: 'system' },
+                    `Erreur serveur lors de la connexion: ${error.message}`,
+                    { error: error.message, endpoint: '/auth/login' }
+                );
+            } catch (auditError) {
+                console.warn('⚠️ Erreur audit non bloquante:', auditError.message);
+            }
+        });
         
         res.status(500).json({ 
             success: false,
@@ -83,21 +110,28 @@ export const login = async (req, res) => {
 };
 
 /**
- * Inscription utilisateur
+ * Inscription utilisateur - Version optimisée
  */
 export const register = async (req, res) => {
     try {
         const { name, email, password, role = 'citizen' } = req.body;
 
-        const userExists = await User.findOne({ email });
+        // Vérification d'existence optimisée
+        const userExists = await User.findOne({ email }).select('_id');
         if (userExists) {
-            // Audit pour tentative d'inscription avec email existant
-            await logManualAudit(
-                'USER_REGISTER_DUPLICATE',
-                { _id: 'anonymous', email, role: 'unknown' },
-                `Tentative d'inscription avec email existant: ${email}`,
-                { attemptEmail: email }
-            );
+            // Audit asynchrone
+            setImmediate(async () => {
+                try {
+                    await logManualAudit(
+                        'USER_REGISTER_DUPLICATE',
+                        { _id: 'anonymous', email, role: 'unknown' },
+                        `Tentative d'inscription avec email existant: ${email}`,
+                        { attemptEmail: email }
+                    );
+                } catch (auditError) {
+                    console.warn('⚠️ Erreur audit non bloquante:', auditError.message);
+                }
+            });
             
             return res.status(409).json({ 
                 success: false,
@@ -114,22 +148,7 @@ export const register = async (req, res) => {
 
         const token = newUser.generateAuthToken();
 
-        // Envoyer l'email de bienvenue (non bloquant)
-        try {
-            const NotificationService = (await import('../services/notification.js')).default;
-            await NotificationService.sendWelcomeNotification(newUser);
-        } catch (notifError) {
-            console.log('⚠️ Erreur notification bienvenue (non bloquante):', notifError.message);
-        }
-
-        // Audit pour inscription réussie
-        await logManualAudit(
-            'USER_REGISTER',
-            newUser,
-            `Nouvel utilisateur inscrit: ${name} (${email})`,
-            { role: newUser.role, registrationMethod: 'email' }
-        );
-
+        // Réponse immédiate
         res.status(201).json({
             success: true,
             message: 'Utilisateur créé avec succès',
@@ -144,17 +163,47 @@ export const register = async (req, res) => {
                 }
             }
         });
+
+        // Tâches asynchrones après la réponse
+        setImmediate(async () => {
+            try {
+                // Notification de bienvenue
+                const NotificationService = (await import('../services/notification.js')).default;
+                await NotificationService.sendWelcomeNotification(newUser);
+            } catch (notifError) {
+                console.log('⚠️ Erreur notification bienvenue (non bloquante):', notifError.message);
+            }
+
+            try {
+                // Audit
+                await logManualAudit(
+                    'USER_REGISTER',
+                    newUser,
+                    `Nouvel utilisateur inscrit: ${name} (${email})`,
+                    { role: newUser.role, registrationMethod: 'email' }
+                );
+            } catch (auditError) {
+                console.warn('⚠️ Erreur audit non bloquante:', auditError.message);
+            }
+        });
+
     } catch (error) {
         if (error.name === 'ValidationError') {
             const errors = Object.values(error.errors).map(err => err.message);
             
-            // Audit pour données d'inscription invalides
-            await logManualAudit(
-                'USER_REGISTER_INVALID',
-                { _id: 'anonymous', email: req.body.email, role: 'unknown' },
-                `Tentative d'inscription avec données invalides`,
-                { errors, attemptEmail: req.body.email }
-            );
+            // Audit asynchrone
+            setImmediate(async () => {
+                try {
+                    await logManualAudit(
+                        'USER_REGISTER_INVALID',
+                        { _id: 'anonymous', email: req.body.email, role: 'unknown' },
+                        `Tentative d'inscription avec données invalides`,
+                        { errors, attemptEmail: req.body.email }
+                    );
+                } catch (auditError) {
+                    console.warn('⚠️ Erreur audit non bloquante:', auditError.message);
+                }
+            });
             
             return res.status(400).json({ 
                 success: false,
@@ -165,13 +214,19 @@ export const register = async (req, res) => {
         
         console.error('❌ Erreur inscription:', error);
         
-        // Audit pour erreur serveur lors de l'inscription
-        await logManualAudit(
-            'SYSTEM_ERROR',
-            { _id: 'system', email: 'system', role: 'system' },
-            `Erreur serveur lors de l'inscription: ${error.message}`,
-            { error: error.message, endpoint: '/auth/register' }
-        );
+        // Audit asynchrone pour erreur
+        setImmediate(async () => {
+            try {
+                await logManualAudit(
+                    'SYSTEM_ERROR',
+                    { _id: 'system', email: 'system', role: 'system' },
+                    `Erreur serveur lors de l'inscription: ${error.message}`,
+                    { error: error.message, endpoint: '/auth/register' }
+                );
+            } catch (auditError) {
+                console.warn('⚠️ Erreur audit non bloquante:', auditError.message);
+            }
+        });
         
         res.status(500).json({ 
             success: false,
