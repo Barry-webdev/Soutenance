@@ -513,14 +513,29 @@ const AdminPage: React.FC = () => {
                         </td>
                         <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
                           {report.images?.thumbnail?.url ? (
-                            <img 
-                              src={buildImageUrl(report.images.thumbnail.url)} 
-                              alt="Aperçu" 
-                              className="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-80"
-                              onClick={() => setSelectedReport(report)}
-                            />
+                            <div className="relative group">
+                              <img 
+                                src={buildImageUrl(report.images.thumbnail.url)} 
+                                alt="Aperçu du signalement" 
+                                className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity border border-gray-200 shadow-sm"
+                                onClick={() => setSelectedReport(report)}
+                                onError={(e) => {
+                                  console.error('Erreur chargement image thumbnail:', report.images?.thumbnail?.url);
+                                  (e.target as HTMLImageElement).src = '/placeholder-image.svg';
+                                }}
+                                loading="lazy"
+                              />
+                              {/* Overlay au hover */}
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                                <span className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                  👁️ Voir
+                                </span>
+                              </div>
+                            </div>
                           ) : (
-                            <span className="text-gray-400 text-xs">Pas d'image</span>
+                            <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+                              <span className="text-gray-400 text-xs">📷</span>
+                            </div>
                           )}
                         </td>
                         <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm">
@@ -818,27 +833,91 @@ const AdminPage: React.FC = () => {
 
                 {/* Image */}
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-2">Image du signalement</h4>
+                  <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    📷 Image du signalement
+                  </h4>
                   {selectedReport.images?.original?.url ? (
-                    <div className="space-y-2">
-                      <img 
-                        src={buildImageUrl(selectedReport.images.original.url)} 
-                        alt="Signalement" 
-                        className="w-full h-64 object-cover rounded-lg border cursor-pointer hover:opacity-90"
-                        onClick={() => {
-                          window.open(buildImageUrl(selectedReport.images.original.url), '_blank');
-                        }}
-                      />
-                      <p className="text-sm text-gray-600">
-                        Fichier: {selectedReport.images.original.filename}
+                    <div className="space-y-3">
+                      <div className="relative group">
+                        <img 
+                          src={buildImageUrl(selectedReport.images.original.url)} 
+                          alt="Signalement complet" 
+                          className="w-full h-80 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-95 transition-opacity shadow-lg"
+                          onClick={() => {
+                            window.open(buildImageUrl(selectedReport.images.original.url), '_blank');
+                          }}
+                          onError={(e) => {
+                            console.error('Erreur chargement image originale:', selectedReport.images?.original?.url);
+                            (e.target as HTMLImageElement).src = '/placeholder-image.svg';
+                          }}
+                          loading="lazy"
+                        />
+                        {/* Overlay avec icône d'agrandissement */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 rounded-lg flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white bg-opacity-90 rounded-full p-3">
+                            <span className="text-gray-800 text-lg">🔍</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Informations sur l'image */}
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-600">Taille:</span>
+                            <span className="ml-2 text-gray-800">
+                              {selectedReport.images.original.dimensions ? 
+                                `${selectedReport.images.original.dimensions.width} × ${selectedReport.images.original.dimensions.height}px` : 
+                                'Non disponible'
+                              }
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-600">Poids:</span>
+                            <span className="ml-2 text-gray-800">
+                              {selectedReport.images.original.size ? 
+                                `${(selectedReport.images.original.size / 1024 / 1024).toFixed(2)} MB` : 
+                                'Non disponible'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm text-blue-600 italic flex items-center gap-2">
+                        💡 Cliquez sur l'image pour l'ouvrir en plein écran
                       </p>
-                      <p className="text-xs text-gray-500 italic">
-                        💡 Cliquez sur l'image pour l'agrandir
-                      </p>
+                      
+                      {/* Miniatures des autres tailles */}
+                      {(selectedReport.images.medium?.url || selectedReport.images.thumbnail?.url) && (
+                        <div className="flex gap-2 mt-3">
+                          <span className="text-sm font-medium text-gray-600 self-center">Autres tailles:</span>
+                          {selectedReport.images.medium?.url && (
+                            <img 
+                              src={buildImageUrl(selectedReport.images.medium.url)} 
+                              alt="Taille moyenne" 
+                              className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80"
+                              onClick={() => window.open(buildImageUrl(selectedReport.images.medium.url), '_blank')}
+                              title="Taille moyenne - Cliquer pour ouvrir"
+                            />
+                          )}
+                          {selectedReport.images.thumbnail?.url && (
+                            <img 
+                              src={buildImageUrl(selectedReport.images.thumbnail.url)} 
+                              alt="Miniature" 
+                              className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80"
+                              onClick={() => window.open(buildImageUrl(selectedReport.images.thumbnail.url), '_blank')}
+                              title="Miniature - Cliquer pour ouvrir"
+                            />
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="w-full h-64 bg-gray-100 rounded-lg border flex items-center justify-center">
-                      <p className="text-gray-500">Aucune image disponible</p>
+                    <div className="w-full h-80 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center">
+                      <div className="text-6xl text-gray-300 mb-4">📷</div>
+                      <p className="text-gray-500 font-medium">Aucune image disponible</p>
+                      <p className="text-gray-400 text-sm mt-1">Ce signalement n'a pas d'image associée</p>
                     </div>
                   )}
                 </div>

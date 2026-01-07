@@ -306,8 +306,8 @@ const MapView: React.FC = () => {
                     <div className="mb-3">
                       <img 
                         src={buildImageUrl(report.images.thumbnail.url)} 
-                        alt="Signalement" 
-                        className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                        alt="Photo du signalement" 
+                        className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity border border-gray-200 shadow-sm"
                         onClick={() => {
                           if (report.images?.original?.url) {
                             window.open(buildImageUrl(report.images.original.url), '_blank');
@@ -317,9 +317,10 @@ const MapView: React.FC = () => {
                           console.error('Erreur chargement image:', report.images?.thumbnail?.url);
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
+                        loading="lazy"
                       />
-                      <p className="text-xs text-gray-500 mt-1 italic">
-                        📸 Cliquez pour agrandir
+                      <p className="text-xs text-blue-600 mt-1 italic">
+                        📷 Cliquez pour agrandir l'image
                       </p>
                     </div>
                   )}

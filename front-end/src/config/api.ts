@@ -25,11 +25,22 @@ export const buildApiUrl = (endpoint: string): string => {
   return url;
 };
 
-// Helper pour les images
+// Helper pour les images - compatible avec Cloudinary et stockage local
 export const buildImageUrl = (imagePath: string): string => {
   if (!imagePath) return '';
-  if (imagePath.startsWith('http')) return imagePath;
-  return `${API_CONFIG.BASE_URL}${imagePath}`;
+  
+  // Si l'URL est déjà complète (Cloudinary ou autre service externe)
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  
+  // Si c'est un chemin relatif (stockage local)
+  if (imagePath.startsWith('/')) {
+    return `${API_CONFIG.BASE_URL}${imagePath}`;
+  }
+  
+  // Fallback pour les chemins sans slash initial
+  return `${API_CONFIG.BASE_URL}/${imagePath}`;
 };
 
 // Helper pour tester la connectivité

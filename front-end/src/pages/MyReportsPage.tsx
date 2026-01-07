@@ -162,19 +162,30 @@ const MyReportsPage: React.FC = () => {
               <div key={report._id} className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 {/* Image du signalement */}
                 {report.images?.medium?.url ? (
-                  <div className="relative">
+                  <div className="relative group">
                     <img 
                       src={buildImageUrl(report.images.medium.url)} 
-                      alt="Signalement" 
-                      className="w-full h-48 object-cover rounded-t-lg cursor-pointer hover:opacity-90"
+                      alt="Photo de votre signalement" 
+                      className="w-full h-56 object-cover rounded-t-lg cursor-pointer hover:opacity-90 transition-opacity"
                       onClick={() => {
                         if (report.images?.original?.url) {
                           window.open(buildImageUrl(report.images.original.url), '_blank');
                         }
                       }}
+                      onError={(e) => {
+                        console.error('Erreur chargement image:', report.images?.medium?.url);
+                        (e.target as HTMLImageElement).src = '/placeholder-image.svg';
+                      }}
+                      loading="lazy"
                     />
+                    {/* Overlay avec icône d'agrandissement */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 rounded-t-lg flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white bg-opacity-90 rounded-full p-2">
+                        <span className="text-gray-800">🔍</span>
+                      </div>
+                    </div>
                     <div className="absolute top-2 right-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium shadow-sm ${
                         report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                         report.status === 'collected' ? 'bg-green-100 text-green-800' :
                         'bg-red-100 text-red-800'
@@ -315,27 +326,59 @@ const MyReportsPage: React.FC = () => {
 
                 {/* Image */}
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-2">Image du signalement</h4>
+                  <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    📷 Votre photo du signalement
+                  </h4>
                   {selectedReport.images?.original?.url ? (
-                    <div className="space-y-2">
-                      <img 
-                        src={buildImageUrl(selectedReport.images.original.url)} 
-                        alt="Signalement" 
-                        className="w-full h-64 object-cover rounded-lg border cursor-pointer hover:opacity-90"
-                        onClick={() => {
-                          window.open(buildImageUrl(selectedReport.images.original.url), '_blank');
-                        }}
-                      />
-                      <p className="text-sm text-gray-600">
-                        Fichier: {selectedReport.images.original.filename}
-                      </p>
-                      {selectedReport.images.original.size && (
-                        <p className="text-sm text-gray-600">
-                          Taille: {(selectedReport.images.original.size / 1024).toFixed(1)} KB
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-500 italic">
-                        💡 Cliquez sur l'image pour l'agrandir
+                    <div className="space-y-3">
+                      <div className="relative group">
+                        <img 
+                          src={buildImageUrl(selectedReport.images.original.url)} 
+                          alt="Votre signalement en haute résolution" 
+                          className="w-full h-80 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-95 transition-opacity shadow-lg"
+                          onClick={() => {
+                            window.open(buildImageUrl(selectedReport.images.original.url), '_blank');
+                          }}
+                          onError={(e) => {
+                            console.error('Erreur chargement image:', selectedReport.images?.original?.url);
+                            (e.target as HTMLImageElement).src = '/placeholder-image.svg';
+                          }}
+                          loading="lazy"
+                        />
+                        {/* Overlay avec icône d'agrandissement */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 rounded-lg flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white bg-opacity-90 rounded-full p-3">
+                            <span className="text-gray-800 text-lg">🔍</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Informations sur l'image */}
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium text-blue-700">Taille:</span>
+                            <span className="ml-2 text-blue-900">
+                              {selectedReport.images.original.dimensions ? 
+                                `${selectedReport.images.original.dimensions.width} × ${selectedReport.images.original.dimensions.height}px` : 
+                                'Non disponible'
+                              }
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-blue-700">Poids:</span>
+                            <span className="ml-2 text-blue-900">
+                              {selectedReport.images.original.size ? 
+                                `${(selectedReport.images.original.size / 1024 / 1024).toFixed(2)} MB` : 
+                                'Non disponible'
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm text-blue-600 italic flex items-center gap-2">
+                        💡 Cliquez sur l'image pour l'ouvrir en plein écran
                       </p>
                     </div>
                   ) : (
