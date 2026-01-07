@@ -197,10 +197,11 @@
 
 
 import React, { useState } from 'react';
-import { Camera, MapPin, X, Upload } from 'lucide-react';
+import { Camera, MapPin, X, Upload, AlertTriangle, Info } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 import { getLocationWithFallback, GeolocationError } from '../../utils/geolocation';
+import { GeographicValidationService } from '../../utils/geographicValidation';
 import { buildApiUrl } from '../../config/api';
 
 interface ReportFormProps {
@@ -214,6 +215,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
   const [description, setDescription] = useState('');
   const [wasteType, setWasteType] = useState('plastique');
   const [location, setLocation] = useState<{ latitude: number; longitude: number; address: string } | null>(null);
+  const [locationValidation, setLocationValidation] = useState<{ isValid: boolean; error?: string; details?: string } | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -262,7 +264,23 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
 
     try {
       const locationData = await getLocationWithFallback();
-      setLocation(locationData);
+      
+      // Valider silencieusement la localisation pour Pita
+      const validation = GeographicValidationService.validateLocation(
+        locationData.latitude, 
+        locationData.longitude
+      );
+      
+      if (validation.isValid) {
+        setLocation(locationData);
+        setLocationValidation(validation);
+      } else {
+        // Ne pas révéler la vraie raison, juste dire que la localisation a échoué
+        setLocation(null);
+        setLocationValidation(null);
+        setError('Impossible de déterminer votre localisation. Veuillez réessayer.');
+      }
+      
       setLocationLoading(false);
     } catch (error: any) {
       const geoError = error as GeolocationError;
@@ -396,7 +414,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       
       {error && (
         <div className="bg-red-100 border border-red-500 text-red-700 p-4 rounded mb-4">
-          <p>{error}</p>
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <p>{error}</p>
+          </div>
         </div>
       )}
 
@@ -500,12 +521,20 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
 
           {location && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-800">
-                <strong>Adresse:</strong> {location.address}
-              </p>
-              <p className="text-sm text-green-700">
-                <strong>Coordonnées:</strong> {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-              </p>
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-green-800">
+                    <strong>Adresse:</strong> {location.address}
+                  </p>
+                  <p className="text-sm text-green-700">
+                    <strong>Coordonnées:</strong> {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                  </p>
+                  <p className="text-sm text-green-600 mt-1">
+                    ✅ Localisation confirmée
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>

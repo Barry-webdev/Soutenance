@@ -4,6 +4,7 @@ import { logManualAudit } from '../middlewares/auditMiddleware.js';
 import HybridImageService from '../services/hybridImageService.js';
 import NotificationService from '../services/notification.js';
 import GamificationService from '../services/gamificationService.js';
+import GeographicValidationService from '../services/geographicValidationService.js';
 
 /**
  * Créer un signalement de déchet
@@ -11,6 +12,41 @@ import GamificationService from '../services/gamificationService.js';
 export const createWasteReport = async (req, res) => {
     try {
         const { description, location, wasteType } = req.body;
+
+        // 🌍 VALIDATION GÉOGRAPHIQUE : Vérifier que le signalement est dans la préfecture de Pita
+        if (!location || !location.lat || !location.lng) {
+            return res.status(400).json({
+                success: false,
+                error: 'Localisation requise',
+                details: 'Les coordonnées GPS (latitude et longitude) sont obligatoires'
+            });
+        }
+
+        const geoValidation = GeographicValidationService.validateLocation(
+            location.lat, 
+            location.lng
+        );
+
+        if (!geoValidation.isValid) {
+            // Audit pour signalement hors zone (silencieux pour l'utilisateur)
+            await logManualAudit(
+                'WASTE_REPORT_REJECTED_LOCATION',
+                req.user,
+                `Signalement rejeté - hors préfecture de Pita`,
+                { 
+                    providedLocation: location,
+                    error: geoValidation.error,
+                    details: geoValidation.details
+                }
+            );
+
+            return res.status(400).json({
+                success: false,
+                error: geoValidation.error,
+                details: geoValidation.details
+            });
+        }
+
         let images = null;
 
         // Traiter l'image si elle existe
@@ -35,36 +71,44 @@ export const createWasteReport = async (req, res) => {
             wasteType
         });
 
-        // Ajouter des points à l'utilisateur
-        await User.findByIdAndUpdate(req.user._id, {
-            $inc: { points: 10 } // 10 points par signalement
+        // Opérations asynchrones pour améliorer les performances
+        const asyncOperations = [
+            // Ajouter des points à l'utilisateur
+            User.findByIdAndUpdate(req.user._id, {
+                $inc: { points: 10 } // 10 points par signalement
+            }),
+
+            // 🔔 NOTIFICATION: Points attribués au citoyen
+            NotificationService.notifyUserPointsAwarded(
+                req.user._id, 
+                10, 
+                'la création d\'un signalement de déchet'
+            ),
+
+            // 🔔 NOTIFICATION: Alertes aux admins
+            NotificationService.notifyAdminsNewWasteReport(wasteReport),
+
+            // 🏆 GAMIFICATION: Vérifier et attribuer les badges
+            GamificationService.checkAndAwardBadges(req.user._id),
+
+            // Audit pour création de signalement
+            logManualAudit(
+                'WASTE_REPORT_CREATE',
+                req.user,
+                `Nouveau signalement de déchet créé dans la préfecture de Pita`,
+                { 
+                    reportId: wasteReport._id,
+                    wasteType: wasteType,
+                    location: location,
+                    pointsAwarded: 10 
+                }
+            )
+        ];
+
+        // Exécuter toutes les opérations en parallèle (non-bloquant)
+        Promise.allSettled(asyncOperations).catch(error => {
+            console.error('❌ Erreur dans les opérations asynchrones:', error);
         });
-
-        // 🔔 NOTIFICATION: Points attribués au citoyen
-        await NotificationService.notifyUserPointsAwarded(
-            req.user._id, 
-            10, 
-            'la création d\'un signalement de déchet'
-        );
-
-        // 🔔 NOTIFICATION: Alertes aux admins
-        await NotificationService.notifyAdminsNewWasteReport(wasteReport);
-
-        // 🏆 GAMIFICATION: Vérifier et attribuer les badges
-        await GamificationService.checkAndAwardBadges(req.user._id);
-
-        // Audit pour création de signalement
-        await logManualAudit(
-            'WASTE_REPORT_CREATE',
-            req.user,
-            `Nouveau signalement de déchet créé`,
-            { 
-                reportId: wasteReport._id,
-                wasteType: wasteType,
-                location: location,
-                pointsAwarded: 10 
-            }
-        );
 
         res.status(201).json({
             success: true,
@@ -358,59 +402,18 @@ export const deleteWasteReport = async (req, res) => {
 };
 
 /**
- * Récupérer les signalements sur une carte (géolocalisation)
+ * Obtenir des informations sur la zone géographique couverte
  */
-export const getWasteReportsMap = async (req, res) => {
+export const getZoneInfo = async (req, res) => {
     try {
-        const { lat, lng, radius = 10000 } = req.query; // radius en mètres
-
-        let query = {};
+        const zoneInfo = GeographicValidationService.getZoneInfo();
         
-        // Si des coordonnées sont fournies, rechercher dans un rayon
-        if (lat && lng) {
-            query.location = {
-                $near: {
-                    $geometry: {
-                        type: "Point",
-                        coordinates: [parseFloat(lng), parseFloat(lat)]
-                    },
-                    $maxDistance: parseInt(radius)
-                }
-            };
-        }
-
-        const wasteReports = await WasteReport.find(query)
-            .populate('userId', 'name')
-            .sort({ createdAt: -1 });
-
-        // Audit pour consultation de la carte
-        await logManualAudit(
-            'WASTE_REPORTS_VIEW_MAP',
-            req.user,
-            `Consultation des signalements sur la carte`,
-            { 
-                latitude: lat,
-                longitude: lng,
-                radius: radius,
-                count: wasteReports.length 
-            }
-        );
-
         res.json({
             success: true,
-            data: wasteReports
+            data: zoneInfo
         });
     } catch (error) {
-        console.error('❌ Erreur récupération carte:', error);
-        
-        // Audit pour erreur récupération carte
-        await logManualAudit(
-            'SYSTEM_ERROR',
-            req.user,
-            `Erreur lors de la récupération de la carte des signalements: ${error.message}`,
-            { error: error.message, endpoint: '/waste/map' }
-        );
-        
+        console.error('❌ Erreur récupération info zone:', error);
         res.status(500).json({ 
             success: false,
             error: 'Erreur serveur' 
