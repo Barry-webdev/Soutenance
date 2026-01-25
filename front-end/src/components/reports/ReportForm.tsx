@@ -196,7 +196,7 @@
 // export default ReportForm;
 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, MapPin, X, Upload, AlertTriangle, Info } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
@@ -264,85 +264,37 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setAudioDuration(duration);
   };
 
-  // Localisation manuelle
-  const handleManualLocation = () => {
-    const lat = prompt('Entrez la latitude (exemple: 11.054444):');
-    const lng = prompt('Entrez la longitude (exemple: -12.396111):');
-    
-    if (lat && lng) {
-      const latitude = parseFloat(lat);
-      const longitude = parseFloat(lng);
-      
-      if (!isNaN(latitude) && !isNaN(longitude)) {
-        setLocation({
-          latitude,
-          longitude,
-          address: 'Localisation manuelle'
-        });
-        setError(null);
-      } else {
-        setError('Coordonnées invalides. Veuillez entrer des nombres valides.');
-      }
-    }
-  };
-
   const getCurrentLocation = () => {
     setLocationLoading(true);
     setError(null);
 
-    // Vérifier si la géolocalisation est supportée
-    if (!navigator.geolocation) {
-      setError('La géolocalisation n\'est pas supportée par votre navigateur.');
-      setLocationLoading(false);
-      return;
-    }
-
-    console.log('🔍 Demande de géolocalisation...');
-
-    const options = {
-      enableHighAccuracy: false, // Moins précis mais plus rapide
-      timeout: 15000, // 15 secondes
-      maximumAge: 300000 // 5 minutes de cache
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        console.log('✅ Position obtenue:', position.coords);
-        
-        const locationData = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          address: `Position: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`
-        };
-
-        setLocation(locationData);
-        setLocationLoading(false);
-        console.log('✅ Localisation définie:', locationData);
-      },
-      (error) => {
-        console.error('❌ Erreur géolocalisation:', error);
-        
-        let errorMessage = 'Impossible de récupérer la localisation.';
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Permission refusée. Veuillez autoriser l\'accès à votre position dans votre navigateur.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Position non disponible. Vérifiez que votre GPS est activé.';
-            break;
-          case error.TIMEOUT:
-            errorMessage = 'Délai d\'attente dépassé. Réessayez.';
-            break;
-          default:
-            errorMessage = `Erreur de géolocalisation: ${error.message}`;
+    // Version ultra-simple qui marche partout
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          // Succès
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            address: 'Ma position'
+          });
+          setLocationLoading(false);
+        },
+        function(error) {
+          // Erreur
+          setError('Veuillez autoriser la géolocalisation dans votre navigateur');
+          setLocationLoading(false);
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 10000,
+          maximumAge: 0
         }
-        
-        setError(errorMessage);
-        setLocationLoading(false);
-      },
-      options
-    );
+      );
+    } else {
+      setError('Géolocalisation non supportée');
+      setLocationLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -604,39 +556,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
           >
             <MapPin className="w-4 h-4" />
-            {locationLoading ? 'Détection...' : 'Partager ma localisation'}
-          </button>
-
-          {/* Bouton de test pour diagnostiquer */}
-          <button
-            type="button"
-            onClick={() => {
-              console.log('🧪 Test géolocalisation...');
-              console.log('- Navigateur:', navigator.userAgent);
-              console.log('- Géolocalisation supportée:', !!navigator.geolocation);
-              console.log('- HTTPS:', location.protocol === 'https:');
-              console.log('- Localhost:', location.hostname === 'localhost');
-              
-              if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => console.log('✅ Test réussi:', pos.coords),
-                  (err) => console.error('❌ Test échoué:', err),
-                  { enableHighAccuracy: false, timeout: 5000 }
-                );
-              }
-            }}
-            className="text-xs text-gray-500 underline mb-3 mr-4"
-          >
-            🧪 Test géolocalisation (voir console)
-          </button>
-
-          {/* Bouton de localisation manuelle */}
-          <button
-            type="button"
-            onClick={handleManualLocation}
-            className="text-xs text-blue-600 underline mb-3"
-          >
-            📍 Entrer coordonnées manuellement
+            {locationLoading ? 'Localisation en cours...' : 'Partager ma localisation'}
           </button>
 
           {location && (
@@ -645,7 +565,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
                 <MapPin className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-green-800">
-                    <strong>Adresse:</strong> {location.address}
+                    <strong>Position:</strong> {location.address}
                   </p>
                   <p className="text-sm text-green-700">
                     <strong>Coordonnées:</strong> {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
