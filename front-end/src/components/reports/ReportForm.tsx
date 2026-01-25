@@ -264,29 +264,84 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setAudioDuration(duration);
   };
 
+  // Localisation manuelle
+  const handleManualLocation = () => {
+    const lat = prompt('Entrez la latitude (exemple: 11.054444):');
+    const lng = prompt('Entrez la longitude (exemple: -12.396111):');
+    
+    if (lat && lng) {
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lng);
+      
+      if (!isNaN(latitude) && !isNaN(longitude)) {
+        setLocation({
+          latitude,
+          longitude,
+          address: 'Localisation manuelle'
+        });
+        setError(null);
+      } else {
+        setError('Coordonnées invalides. Veuillez entrer des nombres valides.');
+      }
+    }
+  };
+
   const getCurrentLocation = () => {
     setLocationLoading(true);
     setError(null);
 
+    // Vérifier si la géolocalisation est supportée
+    if (!navigator.geolocation) {
+      setError('La géolocalisation n\'est pas supportée par votre navigateur.');
+      setLocationLoading(false);
+      return;
+    }
+
+    console.log('🔍 Demande de géolocalisation...');
+
+    const options = {
+      enableHighAccuracy: false, // Moins précis mais plus rapide
+      timeout: 15000, // 15 secondes
+      maximumAge: 300000 // 5 minutes de cache
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({
+        console.log('✅ Position obtenue:', position.coords);
+        
+        const locationData = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          address: 'Localisation actuelle'
-        });
+          address: `Position: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`
+        };
+
+        setLocation(locationData);
         setLocationLoading(false);
+        console.log('✅ Localisation définie:', locationData);
       },
       (error) => {
-        console.error('Erreur géolocalisation:', error);
-        setError('Impossible de récupérer la localisation.');
+        console.error('❌ Erreur géolocalisation:', error);
+        
+        let errorMessage = 'Impossible de récupérer la localisation.';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Permission refusée. Veuillez autoriser l\'accès à votre position dans votre navigateur.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Position non disponible. Vérifiez que votre GPS est activé.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Délai d\'attente dépassé. Réessayez.';
+            break;
+          default:
+            errorMessage = `Erreur de géolocalisation: ${error.message}`;
+        }
+        
+        setError(errorMessage);
         setLocationLoading(false);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-      }
+      options
     );
   };
 
@@ -550,6 +605,38 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
           >
             <MapPin className="w-4 h-4" />
             {locationLoading ? 'Détection...' : 'Partager ma localisation'}
+          </button>
+
+          {/* Bouton de test pour diagnostiquer */}
+          <button
+            type="button"
+            onClick={() => {
+              console.log('🧪 Test géolocalisation...');
+              console.log('- Navigateur:', navigator.userAgent);
+              console.log('- Géolocalisation supportée:', !!navigator.geolocation);
+              console.log('- HTTPS:', location.protocol === 'https:');
+              console.log('- Localhost:', location.hostname === 'localhost');
+              
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => console.log('✅ Test réussi:', pos.coords),
+                  (err) => console.error('❌ Test échoué:', err),
+                  { enableHighAccuracy: false, timeout: 5000 }
+                );
+              }
+            }}
+            className="text-xs text-gray-500 underline mb-3 mr-4"
+          >
+            🧪 Test géolocalisation (voir console)
+          </button>
+
+          {/* Bouton de localisation manuelle */}
+          <button
+            type="button"
+            onClick={handleManualLocation}
+            className="text-xs text-blue-600 underline mb-3"
+          >
+            📍 Entrer coordonnées manuellement
           </button>
 
           {location && (
