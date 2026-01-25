@@ -34,6 +34,13 @@ export const buildImageUrl = (imagePath: string): string => {
     return imagePath;
   }
   
+  // Si c'est un chemin relatif commençant par /uploads/ (ancien stockage local)
+  if (imagePath.startsWith('/uploads/')) {
+    console.warn('⚠️ Image locale détectée:', imagePath);
+    // Essayer de servir depuis le backend, avec fallback vers placeholder
+    return `${API_CONFIG.BASE_URL}${imagePath}`;
+  }
+  
   // Si c'est un chemin relatif (stockage local)
   if (imagePath.startsWith('/')) {
     return `${API_CONFIG.BASE_URL}${imagePath}`;
@@ -41,6 +48,19 @@ export const buildImageUrl = (imagePath: string): string => {
   
   // Fallback pour les chemins sans slash initial
   return `${API_CONFIG.BASE_URL}/${imagePath}`;
+};
+
+// Helper pour gérer les erreurs d'images avec placeholder
+export const getImageWithFallback = (imagePath: string): string => {
+  const url = buildImageUrl(imagePath);
+  
+  // Si c'est une image locale qui pourrait ne pas exister
+  if (imagePath && imagePath.startsWith('/uploads/')) {
+    // Retourner l'URL avec gestion d'erreur côté composant
+    return url;
+  }
+  
+  return url;
 };
 
 // Helper pour tester la connectivité

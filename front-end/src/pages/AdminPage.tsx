@@ -561,8 +561,8 @@ const AdminPage: React.FC = () => {
                                 onClick={() => setSelectedReport(report)}
                                 onError={(e) => {
                                   console.error('Erreur chargement image thumbnail:', report.images?.thumbnail?.url);
-                                  (e.target as HTMLImageElement).src = '/placeholder-image.svg';
-                                }}
+                                  (e.target as HTMLImageElement).src = buildApiUrl('/public/placeholder-image.svg');
+                                }}}
                                 loading="lazy"
                               />
                               {/* Overlay au hover */}
@@ -888,7 +888,7 @@ const AdminPage: React.FC = () => {
                           }}
                           onError={(e) => {
                             console.error('Erreur chargement image originale:', selectedReport.images?.original?.url);
-                            (e.target as HTMLImageElement).src = '/placeholder-image.svg';
+                            (e.target as HTMLImageElement).src = buildApiUrl('/public/placeholder-image.svg');
                           }}
                           loading="lazy"
                         />
