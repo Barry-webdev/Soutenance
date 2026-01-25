@@ -8,17 +8,8 @@ class HybridImageService {
      * Détermine quel service utiliser
      */
     static shouldUseCloudinary() {
-        // Toujours utiliser Cloudinary en production
-        if (process.env.NODE_ENV === 'production') {
-            return true;
-        }
-        
-        // Utiliser Cloudinary si configuré correctement
-        return !!(
-            process.env.CLOUDINARY_CLOUD_NAME && 
-            process.env.CLOUDINARY_CLOUD_NAME !== 'votre_cloud_name' &&
-            process.env.CLOUDINARY_CLOUD_NAME !== 'demo'
-        );
+        // TOUJOURS utiliser Cloudinary (le projet est en production)
+        return true;
     }
 
     /**
@@ -102,24 +93,17 @@ class HybridImageService {
     }
 
     /**
-     * Traiter un fichier audio avec le service approprié
+     * Traiter un fichier audio avec Cloudinary (production)
      */
     static async processAudio(audioBuffer, originalFilename, duration) {
-        const useCloudinary = this.shouldUseCloudinary();
-        
-        console.log(`🎵 Traitement audio avec ${useCloudinary ? 'Cloudinary' : 'stockage local'}`);
+        console.log(`🎵 Traitement audio avec Cloudinary (production)`);
         
         try {
-            if (useCloudinary) {
-                return await CloudinaryService.processAudio(audioBuffer, originalFilename, duration);
-            } else {
-                // Pour le développement local, on peut juste sauvegarder le fichier
-                // ou utiliser un service local (à implémenter si nécessaire)
-                throw new Error('Stockage audio local non implémenté - utilisez Cloudinary');
-            }
+            // Traiter avec Cloudinary (déjà configuré globalement)
+            return await CloudinaryService.processAudio(audioBuffer, originalFilename, duration);
         } catch (error) {
-            console.error(`❌ Erreur traitement audio:`, error.message);
-            throw error;
+            console.error(`❌ Erreur traitement audio Cloudinary:`, error.message);
+            throw new Error(`Erreur lors du traitement de l'audio: ${error.message}`);
         }
     }
 

@@ -83,7 +83,10 @@ export const validateUploads = (req, res, next) => {
     }
 
     // Au moins une description OU un audio requis
-    if (!req.body.description && !audioFile) {
+    const hasDescription = req.body.description && req.body.description.trim().length > 0;
+    const hasAudio = audioFile && audioFile.size > 0;
+    
+    if (!hasDescription && !hasAudio) {
         return res.status(400).json({
             success: false,
             error: 'Une description écrite ou un enregistrement vocal est requis'

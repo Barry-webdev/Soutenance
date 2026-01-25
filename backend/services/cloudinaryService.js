@@ -3,29 +3,33 @@ import { v2 as cloudinary } from 'cloudinary';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 
+// Configuration globale de Cloudinary au chargement du module
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+console.log('🔧 Initialisation Cloudinary:', {
+    cloudName: cloudName ? '✅ Configuré' : '❌ Manquant',
+    apiKey: apiKey ? '✅ Configuré' : '❌ Manquant',
+    apiSecret: apiSecret ? '✅ Configuré' : '❌ Manquant'
+});
+
+if (!cloudName || !apiKey || !apiSecret) {
+    console.error('❌ Configuration Cloudinary manquante');
+    throw new Error('Configuration Cloudinary manquante. Vérifiez les variables CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY et CLOUDINARY_API_SECRET');
+}
+
+// Configuration explicite de Cloudinary
+cloudinary.config({
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
+    secure: true // Forcer HTTPS
+});
+
+console.log('✅ Cloudinary configuré globalement pour:', cloudName);
+
 class CloudinaryService {
-    constructor() {
-        // Configuration Cloudinary avec fallback
-        const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'demo';
-        const apiKey = process.env.CLOUDINARY_API_KEY || 'demo';
-        const apiSecret = process.env.CLOUDINARY_API_SECRET || 'demo';
-        
-        // Utiliser un compte Cloudinary de démonstration si pas configuré
-        if (cloudName === 'demo' || cloudName === 'votre_cloud_name') {
-            console.log('⚠️ Cloudinary non configuré, utilisation du compte de démonstration');
-            cloudinary.config({
-                cloud_name: 'demo',
-                api_key: '123456789012345',
-                api_secret: 'abcdefghijklmnopqrstuvwxyz123456'
-            });
-        } else {
-            cloudinary.config({
-                cloud_name: cloudName,
-                api_key: apiKey,
-                api_secret: apiSecret
-            });
-        }
-    }
 
     // Formats d'images supportés
     static SUPPORTED_FORMATS = ['jpeg', 'jpg', 'png', 'webp'];

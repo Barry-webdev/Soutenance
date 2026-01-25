@@ -68,10 +68,18 @@ export const validateRegister = (req, res, next) => {
  */
 export const validateWasteReport = (req, res, next) => {
     const { description, wasteType, location } = req.body;
+    const audioFile = req.files?.audio?.[0];
     
     const errors = [];
     
-    if (!description) errors.push('La description est obligatoire');
+    // Description OU audio requis (pas les deux obligatoires)
+    const hasDescription = description && description.trim().length > 0;
+    const hasAudio = audioFile && audioFile.size > 0;
+    
+    if (!hasDescription && !hasAudio) {
+        errors.push('Une description écrite ou un enregistrement vocal est requis');
+    }
+    
     if (!wasteType) errors.push('Le type de déchet est obligatoire');
     if (!location) errors.push('La localisation est obligatoire');
     

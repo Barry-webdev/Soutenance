@@ -562,7 +562,7 @@ const AdminPage: React.FC = () => {
                                 onError={(e) => {
                                   console.error('Erreur chargement image thumbnail:', report.images?.thumbnail?.url);
                                   (e.target as HTMLImageElement).src = buildApiUrl('/public/placeholder-image.svg');
-                                }}}
+                                }}
                                 loading="lazy"
                               />
                               {/* Overlay au hover */}
