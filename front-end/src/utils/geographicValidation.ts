@@ -45,6 +45,18 @@ export class GeographicValidationService {
       };
     }
 
+    // MODE DÉVELOPPEMENT : Accepter toutes les localisations
+    if (import.meta.env.DEV || window.location.hostname === 'localhost') {
+      console.log('🔧 Mode développement : Validation géographique désactivée');
+      return {
+        isValid: true,
+        location: {
+          provided: { lat, lng },
+          distanceFromPita: 'Mode développement'
+        }
+      };
+    }
+
     // Vérification des limites rectangulaires
     const withinBounds = (
       lat >= this.PITA_PREFECTURE_BOUNDS.south &&

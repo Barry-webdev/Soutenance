@@ -284,10 +284,15 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         setLocation(locationData);
         setLocationValidation(validation);
       } else {
-        // Ne pas révéler la vraie raison, juste dire que la localisation a échoué
+        // Afficher le vrai message d'erreur en développement
         setLocation(null);
         setLocationValidation(null);
-        setError('Impossible de déterminer votre localisation. Veuillez réessayer.');
+        
+        if (import.meta.env.DEV) {
+          setError(`Validation géographique échouée: ${validation.error} - ${validation.details}`);
+        } else {
+          setError('Impossible de déterminer votre localisation. Veuillez réessayer.');
+        }
       }
       
       setLocationLoading(false);
