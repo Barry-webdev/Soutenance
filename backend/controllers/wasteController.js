@@ -402,6 +402,46 @@ export const deleteWasteReport = async (req, res) => {
 };
 
 /**
+ * Récupérer les signalements pour la carte (avec localisation)
+ */
+export const getWasteReportsMap = async (req, res) => {
+    try {
+        const wasteReports = await WasteReport.find({ status: { $ne: 'collected' } })
+            .populate('userId', 'name')
+            .select('description location wasteType status createdAt images')
+            .sort({ createdAt: -1 });
+
+        // Audit pour consultation de la carte
+        await logManualAudit(
+            'WASTE_REPORTS_MAP_VIEW',
+            req.user,
+            `Consultation de la carte des signalements`,
+            { count: wasteReports.length }
+        );
+
+        res.json({
+            success: true,
+            data: wasteReports
+        });
+    } catch (error) {
+        console.error('❌ Erreur récupération signalements carte:', error);
+        
+        // Audit pour erreur récupération carte
+        await logManualAudit(
+            'SYSTEM_ERROR',
+            req.user,
+            `Erreur lors de la récupération des signalements pour la carte: ${error.message}`,
+            { error: error.message, endpoint: '/waste/map' }
+        );
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Erreur serveur' 
+        });
+    }
+};
+
+/**
  * Obtenir des informations sur la zone géographique couverte
  */
 export const getZoneInfo = async (req, res) => {
