@@ -81,6 +81,7 @@ app.use((req, res, next) => {
 
 // Servir les fichiers statiques (images)
 app.use('/uploads', express.static('uploads'));
+app.use('/public', express.static('public'));
 
 // Routes essentielles seulement
 app.use('/api/auth', authRoutes);
