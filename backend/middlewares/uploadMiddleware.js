@@ -41,22 +41,27 @@ export const validateUploads = (req, res, next) => {
     const imageFile = req.files?.image?.[0];
     const audioFile = req.files?.audio?.[0];
 
-    // Validation image (si présente)
-    if (imageFile) {
-        if (imageFile.size > 15 * 1024 * 1024) {
-            return res.status(400).json({
-                success: false,
-                error: 'L\'image est trop volumineuse (max 15MB)'
-            });
-        }
+    // Validation image (obligatoire)
+    if (!imageFile) {
+        return res.status(400).json({
+            success: false,
+            error: 'Une photo du déchet est obligatoire'
+        });
+    }
 
-        const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        if (!allowedImageTypes.includes(imageFile.mimetype)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Format d\'image non supporté. Formats acceptés: JPEG, PNG, WebP'
-            });
-        }
+    if (imageFile.size > 15 * 1024 * 1024) {
+        return res.status(400).json({
+            success: false,
+            error: 'L\'image est trop volumineuse (max 15MB)'
+        });
+    }
+
+    const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedImageTypes.includes(imageFile.mimetype)) {
+        return res.status(400).json({
+            success: false,
+            error: 'Format d\'image non supporté. Formats acceptés: JPEG, PNG, WebP'
+        });
     }
 
     // Validation audio (si présent)
