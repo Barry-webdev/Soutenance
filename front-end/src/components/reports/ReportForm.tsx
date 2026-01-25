@@ -200,8 +200,6 @@ import React, { useState } from 'react';
 import { Camera, MapPin, X, Upload, AlertTriangle, Info } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
-import { getLocationWithFallback, GeolocationError } from '../../utils/geolocation';
-import { GeographicValidationService } from '../../utils/geographicValidation';
 import { buildApiUrl } from '../../config/api';
 import WhatsAppVoiceInput from '../voice/WhatsAppVoiceInput';
 
@@ -216,7 +214,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
   const [description, setDescription] = useState('');
   const [wasteType, setWasteType] = useState('plastique');
   const [location, setLocation] = useState<{ latitude: number; longitude: number; address: string } | null>(null);
-  const [locationValidation, setLocationValidation] = useState<{ isValid: boolean; error?: string; details?: string } | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -267,57 +264,30 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setAudioDuration(duration);
   };
 
-  const getCurrentLocation = async () => {
+  const getCurrentLocation = () => {
     setLocationLoading(true);
     setError(null);
 
-    console.log('🔍 Début géolocalisation...');
-    console.log('- URL actuelle:', window.location.href);
-    console.log('- Mode dev:', import.meta.env.DEV);
-    console.log('- Hostname:', window.location.hostname);
-
-    try {
-      const locationData = await getLocationWithFallback();
-      console.log('✅ Localisation obtenue:', locationData);
-      
-      // Valider silencieusement la localisation pour Pita
-      const validation = GeographicValidationService.validateLocation(
-        locationData.latitude, 
-        locationData.longitude
-      );
-      
-      console.log('🔍 Validation géographique:', validation);
-      
-      if (validation.isValid) {
-        setLocation(locationData);
-        setLocationValidation(validation);
-        console.log('✅ Localisation validée et définie');
-      } else {
-        // Afficher le vrai message d'erreur en développement
-        setLocation(null);
-        setLocationValidation(null);
-        
-        if (import.meta.env.DEV) {
-          console.error('❌ Validation échouée:', validation);
-          setError(`Validation géographique échouée: ${validation.error} - ${validation.details}`);
-        } else {
-          setError('Impossible de déterminer votre localisation. Veuillez réessayer.');
-        }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          address: 'Localisation actuelle'
+        });
+        setLocationLoading(false);
+      },
+      (error) => {
+        console.error('Erreur géolocalisation:', error);
+        setError('Impossible de récupérer la localisation.');
+        setLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
       }
-      
-      setLocationLoading(false);
-    } catch (error: any) {
-      console.error('❌ Erreur géolocalisation complète:', error);
-      const geoError = error as GeolocationError;
-      
-      if (geoError.isHttpsRequired) {
-        setError(`${geoError.message}. Votre site doit être en HTTPS pour utiliser la géolocalisation précise sur mobile.`);
-      } else {
-        setError(geoError.message);
-      }
-      
-      setLocationLoading(false);
-    }
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
