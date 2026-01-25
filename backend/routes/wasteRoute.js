@@ -9,7 +9,7 @@ import {
 } from '../controllers/wasteController.js';
 import { authenticate, requireAdmin, requireRoles } from '../middlewares/authMiddleware.js';
 import { validateWasteReport } from '../middlewares/validationMiddleware.js';
-import { uploadSingleImage, validateImageUpload, handleUploadError } from '../middlewares/uploadMiddleware.js';
+import { uploadImageAndAudio, validateUploads, handleUploadError } from '../middlewares/uploadMiddleware.js';
 
 const router = express.Router();
 
@@ -20,8 +20,8 @@ router.get('/public', getWasteReportsMap);
 router.post('/', 
     authenticate, 
     requireRoles(['citizen', 'partner']), 
-    uploadSingleImage, 
-    validateImageUpload, 
+    uploadImageAndAudio, 
+    validateUploads, 
     validateWasteReport, 
     createWasteReport,
     handleUploadError

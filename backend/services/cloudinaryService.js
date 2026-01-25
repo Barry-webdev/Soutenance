@@ -259,6 +259,86 @@ class CloudinaryService {
                 return images.medium?.url || images.original?.url;
         }
     }
+
+    /**
+     * Upload un fichier audio vers Cloudinary
+     */
+    static async uploadAudioToCloudinary(buffer, publicId, folder = 'waste-reports-audio') {
+        return new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+                {
+                    public_id: publicId,
+                    folder: folder,
+                    resource_type: 'video', // Cloudinary utilise 'video' pour l'audio
+                    format: 'mp3', // Convertir en MP3 pour compatibilité
+                    quality: 'auto'
+                },
+                (error, result) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(result);
+                    }
+                }
+            ).end(buffer);
+        });
+    }
+
+    /**
+     * Traiter un fichier audio et l'uploader sur Cloudinary
+     */
+    static async processAudio(audioBuffer, originalFilename, duration) {
+        try {
+            console.log('🎵 Traitement audio:', originalFilename, 'durée:', duration + 's');
+
+            // Validation de base
+            if (audioBuffer.length > 5 * 1024 * 1024) { // 5MB max
+                throw new Error('Le fichier audio ne peut pas dépasser 5MB');
+            }
+
+            if (duration > 60) {
+                throw new Error('L\'enregistrement ne peut pas dépasser 60 secondes');
+            }
+
+            // Générer un identifiant unique
+            const uniqueId = uuidv4();
+            const publicId = `audio_${uniqueId}_${Date.now()}`;
+
+            // Upload vers Cloudinary
+            const uploadResult = await this.uploadAudioToCloudinary(
+                audioBuffer, 
+                publicId
+            );
+
+            console.log('✅ Audio uploadé sur Cloudinary:', uploadResult.secure_url);
+
+            return {
+                url: uploadResult.secure_url,
+                publicId: uploadResult.public_id,
+                duration: duration,
+                size: audioBuffer.length,
+                mimeType: 'audio/mp3' // Cloudinary convertit en MP3
+            };
+
+        } catch (error) {
+            console.error('❌ Erreur traitement audio:', error);
+            throw new Error(`Erreur lors du traitement de l'audio: ${error.message}`);
+        }
+    }
+
+    /**
+     * Supprimer un fichier audio de Cloudinary
+     */
+    static async deleteAudio(publicId) {
+        try {
+            if (publicId) {
+                await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+                console.log('🗑️ Audio supprimé de Cloudinary:', publicId);
+            }
+        } catch (error) {
+            console.error('❌ Erreur suppression audio:', error);
+        }
+    }
 }
 
 export default CloudinaryService;

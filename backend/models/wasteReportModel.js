@@ -8,9 +8,15 @@ const wasteReportSchema = new mongoose.Schema({
     },
     description: {
         type: String,
-        required: [true, 'La description est obligatoire'],
         trim: true,
-        maxlength: [500, 'La description ne peut pas dépasser 500 caractères']
+        maxlength: [500, 'La description ne peut pas dépasser 500 caractères'],
+        validate: {
+            validator: function() {
+                // Description OU audio requis (pas les deux obligatoires)
+                return this.description || this.audio?.url;
+            },
+            message: 'Une description écrite ou un enregistrement vocal est requis'
+        }
     },
     images: {
         original: {
@@ -88,6 +94,51 @@ const wasteReportSchema = new mongoose.Schema({
                     required: false
                 }
             }
+        }
+    },
+    audio: {
+        url: {
+            type: String,
+            required: false
+        },
+        publicId: {
+            type: String,
+            required: false
+        },
+        duration: {
+            type: Number, // Durée en secondes
+            required: false,
+            min: 1,
+            max: 60
+        },
+        size: {
+            type: Number, // Taille en bytes
+            required: false
+        },
+        mimeType: {
+            type: String,
+            required: false,
+            default: 'audio/webm'
+        },
+        transcription: {
+            type: String,
+            required: false,
+            maxlength: [1000, 'La transcription ne peut pas dépasser 1000 caractères']
+        },
+        language: {
+            type: String,
+            required: false,
+            enum: ['fr', 'ff', 'sus', 'man'], // Français, Peul, Soussou, Malinké
+            default: 'fr'
+        },
+        transcribedAt: {
+            type: Date,
+            required: false
+        },
+        transcribedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: false
         }
     },
     location: {

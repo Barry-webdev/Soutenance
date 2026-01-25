@@ -48,12 +48,14 @@ export const createWasteReport = async (req, res) => {
         }
 
         let images = null;
+        let audio = null;
 
         // Traiter l'image si elle existe
-        if (req.file) {
+        if (req.files?.image?.[0]) {
             try {
                 console.log('📸 Traitement de l\'image...');
-                images = await HybridImageService.processImage(req.file.buffer, req.file.originalname);
+                const imageFile = req.files.image[0];
+                images = await HybridImageService.processImage(imageFile.buffer, imageFile.originalname);
                 console.log('✅ Image traitée avec succès:', images.original?.url);
             } catch (imageError) {
                 return res.status(400).json({
@@ -63,10 +65,32 @@ export const createWasteReport = async (req, res) => {
             }
         }
 
+        // Traiter l'audio si il existe
+        if (req.files?.audio?.[0]) {
+            try {
+                console.log('🎵 Traitement de l\'audio...');
+                const audioFile = req.files.audio[0];
+                const audioDuration = parseInt(req.body.audioDuration) || 0;
+                
+                audio = await HybridImageService.processAudio(
+                    audioFile.buffer, 
+                    audioFile.originalname,
+                    audioDuration
+                );
+                console.log('✅ Audio traité avec succès:', audio.url);
+            } catch (audioError) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Erreur lors du traitement de l'audio: ${audioError.message}`
+                });
+            }
+        }
+
         const wasteReport = await WasteReport.create({
             userId: req.user._id,
             description,
             images,
+            audio,
             location,
             wasteType
         });

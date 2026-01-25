@@ -67,6 +67,23 @@ class HybridImageService {
     }
 
     /**
+     * Supprimer un fichier audio
+     */
+    static async deleteAudio(audioData) {
+        try {
+            if (audioData?.url?.includes('cloudinary.com')) {
+                console.log('🗑️ Suppression audio Cloudinary');
+                await CloudinaryService.deleteAudio(audioData.publicId);
+            } else {
+                console.log('🗑️ Suppression audio local (non implémenté)');
+                // Implémenter la suppression locale si nécessaire
+            }
+        } catch (error) {
+            console.error('❌ Erreur suppression audio:', error);
+        }
+    }
+
+    /**
      * Obtenir l'URL optimale
      */
     static getOptimalImageUrl(images, context = 'medium') {
@@ -81,6 +98,45 @@ class HybridImageService {
                 return images.original?.url;
             default:
                 return images.medium?.url || images.original?.url;
+        }
+    }
+
+    /**
+     * Traiter un fichier audio avec le service approprié
+     */
+    static async processAudio(audioBuffer, originalFilename, duration) {
+        const useCloudinary = this.shouldUseCloudinary();
+        
+        console.log(`🎵 Traitement audio avec ${useCloudinary ? 'Cloudinary' : 'stockage local'}`);
+        
+        try {
+            if (useCloudinary) {
+                return await CloudinaryService.processAudio(audioBuffer, originalFilename, duration);
+            } else {
+                // Pour le développement local, on peut juste sauvegarder le fichier
+                // ou utiliser un service local (à implémenter si nécessaire)
+                throw new Error('Stockage audio local non implémenté - utilisez Cloudinary');
+            }
+        } catch (error) {
+            console.error(`❌ Erreur traitement audio:`, error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Supprimer un fichier audio
+     */
+    static async deleteAudio(audioData) {
+        try {
+            if (audioData?.url?.includes('cloudinary.com')) {
+                console.log('🗑️ Suppression audio Cloudinary');
+                await CloudinaryService.deleteAudio(audioData.publicId);
+            } else {
+                console.log('🗑️ Suppression audio local (non implémenté)');
+                // Implémenter la suppression locale si nécessaire
+            }
+        } catch (error) {
+            console.error('❌ Erreur suppression audio:', error);
         }
     }
 
