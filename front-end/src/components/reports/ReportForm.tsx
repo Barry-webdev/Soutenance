@@ -327,6 +327,11 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       return;
     }
 
+    if (!imageFile) {
+      setError('Une photo du déchet est obligatoire.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -510,7 +515,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         {/* Upload d'image */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Photo du déchet (optionnel)
+            Photo du déchet *
           </label>
           
           {!imagePreview ? (
@@ -589,7 +594,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         {/* Bouton de soumission */}
         <button
           type="submit"
-          disabled={isSubmitting || !location || (!description && !audioBlob)}
+          disabled={isSubmitting || !location || (!description && !audioBlob) || !imageFile}
           className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
