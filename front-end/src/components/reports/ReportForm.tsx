@@ -203,6 +203,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getLocationWithFallback, GeolocationError } from '../../utils/geolocation';
 import { GeographicValidationService } from '../../utils/geographicValidation';
 import { buildApiUrl } from '../../config/api';
+import WhatsAppVoiceInput from '../voice/WhatsAppVoiceInput';
 
 interface ReportFormProps {
   onSuccess?: () => void;
@@ -218,6 +219,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
   const [locationValidation, setLocationValidation] = useState<{ isValid: boolean; error?: string; details?: string } | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioDuration, setAudioDuration] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -256,6 +259,12 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     // Reset l'input file
     const fileInput = document.getElementById('imageInput') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
+  };
+
+  // Gérer l'audio du composant vocal
+  const handleAudioChange = (blob: Blob | null, duration: number) => {
+    setAudioBlob(blob);
+    setAudioDuration(duration);
   };
 
   const getCurrentLocation = async () => {
@@ -303,8 +312,13 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       return;
     }
 
-    if (!description || !location) {
-      setError('La description et la localisation sont obligatoires.');
+    if (!description && !audioBlob) {
+      setError('Veuillez fournir une description écrite ou un enregistrement vocal.');
+      return;
+    }
+
+    if (!location) {
+      setError('La localisation est obligatoire.');
       return;
     }
 
@@ -319,7 +333,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Créer FormData pour l'upload d'image
+      // Créer FormData pour l'upload d'image et audio
       const formData = new FormData();
       formData.append('description', description);
       formData.append('wasteType', wasteType);
@@ -330,7 +344,16 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         formData.append('image', imageFile);
       }
 
-      console.log('🔍 Envoi du signalement avec image...');
+      if (audioBlob) {
+        // Convertir le blob audio en fichier
+        const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, {
+          type: 'audio/webm;codecs=opus'
+        });
+        formData.append('audio', audioFile);
+        formData.append('audioDuration', audioDuration.toString());
+      }
+
+      console.log('🔍 Envoi du signalement avec image et/ou audio...');
 
       const response = await fetch(buildApiUrl('/api/waste'), {
         method: 'POST',
@@ -382,6 +405,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       setLocation(null);
       setImageFile(null);
       setImagePreview(null);
+      setAudioBlob(null);
+      setAudioDuration(0);
 
       // Callback de succès ou redirection
       if (onSuccess) {
@@ -422,20 +447,37 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Description */}
+        {/* Description avec composant vocal */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-            Description du déchet *
+            Description du déchet
           </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            placeholder="Décrivez le type de déchet et son état..."
-            required
-          />
+          <div className="relative">
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 pr-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Décrivez le type de déchet et son état... ou utilisez l'enregistrement vocal"
+            />
+            
+            {/* Composant d'enregistrement vocal */}
+            <WhatsAppVoiceInput 
+              onAudioChange={handleAudioChange}
+              disabled={isSubmitting}
+            />
+          </div>
+          
+          <p className="text-xs text-gray-500 mt-1">
+            {audioBlob ? (
+              <span className="text-green-600">
+                ✅ Enregistrement vocal ajouté ({audioDuration}s)
+              </span>
+            ) : (
+              "Appuyez longuement sur le micro pour enregistrer un message vocal"
+            )}
+          </p>
         </div>
 
         {/* Type de déchet */}
@@ -542,7 +584,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         {/* Bouton de soumission */}
         <button
           type="submit"
-          disabled={isSubmitting || !location}
+          disabled={isSubmitting || !location || (!description && !audioBlob)}
           className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
