@@ -271,8 +271,14 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setLocationLoading(true);
     setError(null);
 
+    console.log('🔍 Début géolocalisation...');
+    console.log('- URL actuelle:', window.location.href);
+    console.log('- Mode dev:', import.meta.env.DEV);
+    console.log('- Hostname:', window.location.hostname);
+
     try {
       const locationData = await getLocationWithFallback();
+      console.log('✅ Localisation obtenue:', locationData);
       
       // Valider silencieusement la localisation pour Pita
       const validation = GeographicValidationService.validateLocation(
@@ -280,15 +286,19 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         locationData.longitude
       );
       
+      console.log('🔍 Validation géographique:', validation);
+      
       if (validation.isValid) {
         setLocation(locationData);
         setLocationValidation(validation);
+        console.log('✅ Localisation validée et définie');
       } else {
         // Afficher le vrai message d'erreur en développement
         setLocation(null);
         setLocationValidation(null);
         
         if (import.meta.env.DEV) {
+          console.error('❌ Validation échouée:', validation);
           setError(`Validation géographique échouée: ${validation.error} - ${validation.details}`);
         } else {
           setError('Impossible de déterminer votre localisation. Veuillez réessayer.');
@@ -297,6 +307,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       
       setLocationLoading(false);
     } catch (error: any) {
+      console.error('❌ Erreur géolocalisation complète:', error);
       const geoError = error as GeolocationError;
       
       if (geoError.isHttpsRequired) {

@@ -36,8 +36,11 @@ export class GeographicValidationService {
    * Valider si des coordonnées sont dans la préfecture de Pita
    */
   static validateLocation(lat: number, lng: number): LocationValidationResult {
+    console.log('🌍 Validation géographique:', { lat, lng });
+    
     // Vérification des paramètres
     if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+      console.log('❌ Coordonnées invalides');
       return {
         isValid: false,
         error: 'Coordonnées invalides',
@@ -57,6 +60,8 @@ export class GeographicValidationService {
       };
     }
 
+    console.log('🏛️ Mode production : Validation pour préfecture de Pita');
+
     // Vérification des limites rectangulaires
     const withinBounds = (
       lat >= this.PITA_PREFECTURE_BOUNDS.south &&
@@ -64,6 +69,8 @@ export class GeographicValidationService {
       lng >= this.PITA_PREFECTURE_BOUNDS.west &&
       lng <= this.PITA_PREFECTURE_BOUNDS.east
     );
+
+    console.log('📍 Dans les limites:', withinBounds);
 
     if (!withinBounds) {
       return {
@@ -79,6 +86,8 @@ export class GeographicValidationService {
       this.PITA_CENTER.lat, this.PITA_CENTER.lng
     );
 
+    console.log('📏 Distance du centre de Pita:', distanceFromCenter, 'km');
+
     if (distanceFromCenter > this.MAX_RADIUS_KM) {
       return {
         isValid: false,
@@ -87,6 +96,7 @@ export class GeographicValidationService {
       };
     }
 
+    console.log('✅ Localisation validée pour Pita');
     return {
       isValid: true,
       location: {
