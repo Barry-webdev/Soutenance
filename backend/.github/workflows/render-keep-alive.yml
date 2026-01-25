@@ -1,0 +1,15 @@
+name: Render Keepalive
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # every 10 minutes
+  workflow_dispatch:
+
+jobs:
+  ping-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Render app
+        run: |
+          curl --fail --silent --show-error --max-time 30 https://ecopulse-backend-00i3.onrender.com
