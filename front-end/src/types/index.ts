@@ -9,10 +9,54 @@ export interface User {
 }
 
 export interface WasteReport {
-  id: string;
-  userId: string;
+  _id: string;
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string;
   description: string;
-  imageUrl?: string;
+  images?: {
+    original?: {
+      url: string;
+      filename?: string;
+      size?: number;
+      dimensions?: {
+        width: number;
+        height: number;
+      };
+      mimeType?: string;
+    };
+    medium?: {
+      url: string;
+      filename?: string;
+      size?: number;
+      dimensions?: {
+        width: number;
+        height: number;
+      };
+    };
+    thumbnail?: {
+      url: string;
+      filename?: string;
+      size?: number;
+      dimensions?: {
+        width: number;
+        height: number;
+      };
+    };
+  };
+  audio?: {
+    url: string;
+    publicId?: string;
+    duration: number;
+    size?: number;
+    mimeType?: string;
+    transcription?: string;
+    language?: 'fr' | 'ff' | 'sus' | 'man';
+    transcribedAt?: string;
+    transcribedBy?: string;
+  };
   location: {
     lat: number;
     lng: number;

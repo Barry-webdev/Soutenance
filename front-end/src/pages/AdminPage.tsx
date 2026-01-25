@@ -57,6 +57,7 @@ const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'reports' | 'users' | 'collaborations'>('reports');
   const [processingCollaboration, setProcessingCollaboration] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
   const [hasError, setHasError] = useState(false);
 
   // Error boundary effect
@@ -213,13 +214,52 @@ const AdminPage: React.FC = () => {
       refetchIntervalInBackground: true
     });
 
-  // Debug logging
-  useEffect(() => {
-    console.log('📊 État des données:');
-    console.log('- Reports:', reports.length, 'loading:', isLoadingReports, 'error:', reportsError?.message);
-    console.log('- Users:', users.length, 'loading:', isLoadingUsers, 'error:', usersError?.message);
-    console.log('- Collaborations:', collaborations.length, 'loading:', isLoadingCollaborations, 'error:', collaborationsError?.message);
-  }, [reports, users, collaborations, isLoadingReports, isLoadingUsers, isLoadingCollaborations, reportsError, usersError, collaborationsError]);
+  // Fonction de transcription audio
+  const transcribeAudio = async (reportId: string) => {
+    setIsTranscribing(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(buildApiUrl(`/api/transcription/${reportId}/transcribe`), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ language: 'fr' })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Mettre à jour le signalement sélectionné avec la transcription
+        if (selectedReport && selectedReport._id === reportId) {
+          setSelectedReport({
+            ...selectedReport,
+            audio: {
+              ...selectedReport.audio,
+              transcription: data.data.transcription,
+              language: data.data.detectedLanguage,
+              transcribedAt: data.data.transcribedAt
+            }
+          });
+        }
+        
+        // Invalider les queries pour rafraîchir les données
+        await queryClient.invalidateQueries({ queryKey: ['waste_reports'] });
+        
+        alert('Transcription réalisée avec succès !');
+      } else {
+        throw new Error(data.error || 'Erreur lors de la transcription');
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Erreur transcription:', error);
+      alert(`Erreur lors de la transcription: ${error.message}`);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
 
   // Fonction de mise à jour du statut avec diagnostic
   const updateReportStatus = async (reportId: string, newStatus: WasteReport['status']) => {
@@ -918,6 +958,95 @@ const AdminPage: React.FC = () => {
                       <div className="text-6xl text-gray-300 mb-4">📷</div>
                       <p className="text-gray-500 font-medium">Aucune image disponible</p>
                       <p className="text-gray-400 text-sm mt-1">Ce signalement n'a pas d'image associée</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Audio */}
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    🎵 Enregistrement vocal
+                  </h4>
+                  {selectedReport.audio?.url ? (
+                    <div className="space-y-3">
+                      {/* Lecteur audio principal */}
+                      <div className="bg-gray-50 p-4 rounded-lg border">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xl">🎤</span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">Message vocal</p>
+                              <p className="text-sm text-gray-600">
+                                Durée: {selectedReport.audio.duration}s • 
+                                Taille: {selectedReport.audio.size ? `${(selectedReport.audio.size / 1024).toFixed(1)} KB` : 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Lecteur audio HTML5 */}
+                        <audio 
+                          controls 
+                          className="w-full"
+                          preload="metadata"
+                        >
+                          <source src={selectedReport.audio.url} type={selectedReport.audio.mimeType || 'audio/mp3'} />
+                          Votre navigateur ne supporte pas la lecture audio.
+                        </audio>
+                        
+                        {/* Bouton de téléchargement */}
+                        <div className="mt-3 flex justify-end">
+                          <a
+                            href={selectedReport.audio.url}
+                            download={`audio_signalement_${selectedReport._id}.mp3`}
+                            className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                          >
+                            📥 Télécharger l'audio
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Section transcription */}
+                      {selectedReport.audio.transcription ? (
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                          <h5 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+                            📝 Transcription automatique
+                            <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded">
+                              {selectedReport.audio.language?.toUpperCase() || 'FR'}
+                            </span>
+                          </h5>
+                          <p className="text-blue-900 italic">"{selectedReport.audio.transcription}"</p>
+                          <div className="mt-2 text-xs text-blue-600">
+                            Transcrit le {new Date(selectedReport.audio.transcribedAt).toLocaleString('fr-FR')}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h5 className="font-medium text-yellow-800 mb-1">Transcription non disponible</h5>
+                              <p className="text-sm text-yellow-700">
+                                Cliquez sur "Transcrire" pour convertir l'audio en texte
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => transcribeAudio(selectedReport._id)}
+                              disabled={isTranscribing}
+                              className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            >
+                              {isTranscribing ? '⏳ Transcription...' : '📝 Transcrire'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full h-32 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center">
+                      <div className="text-4xl text-gray-300 mb-2">🎤</div>
+                      <p className="text-gray-500 font-medium">Aucun enregistrement vocal</p>
+                      <p className="text-gray-400 text-sm mt-1">Ce signalement n'a pas d'audio associé</p>
                     </div>
                   )}
                 </div>
