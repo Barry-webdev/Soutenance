@@ -166,7 +166,20 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       return;
     }
 
-    if (!description && !audioBlob) {
+    // Vérifier qu'on a soit description soit audio
+    const hasDescription = description && description.trim().length > 0;
+    const hasAudio = audioBlob && audioBlob.size > 0;
+    
+    console.log('🔍 Validation:', {
+      description: description,
+      descriptionLength: description?.length,
+      hasDescription: hasDescription,
+      audioBlob: audioBlob,
+      audioBlobSize: audioBlob?.size,
+      hasAudio: hasAudio
+    });
+    
+    if (!hasDescription && !hasAudio) {
       setError('Veuillez fournir une description écrite ou un enregistrement vocal.');
       return;
     }
