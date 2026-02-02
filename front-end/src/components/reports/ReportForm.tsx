@@ -163,19 +163,21 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Créer FormData pour l'upload d'image et audio
+      // OPTIMISATION 1: Compresser l'image avant envoi
+      let processedImageFile = imageFile;
+      if (imageFile.size > 1024 * 1024) { // Si > 1MB, compresser
+        processedImageFile = await compressImage(imageFile, 0.7); // 70% qualité
+      }
+
+      // OPTIMISATION 2: Créer FormData optimisé
       const formData = new FormData();
       formData.append('description', description);
       formData.append('wasteType', wasteType);
       formData.append('location[lat]', location.latitude.toString());
       formData.append('location[lng]', location.longitude.toString());
-      
-      if (imageFile) {
-        formData.append('image', imageFile);
-      }
+      formData.append('image', processedImageFile);
 
       if (audioBlob) {
-        // Convertir le blob audio en fichier
         const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, {
           type: 'audio/webm;codecs=opus'
         });
@@ -183,52 +185,30 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         formData.append('audioDuration', audioDuration.toString());
       }
 
-      console.log('🔍 Envoi du signalement avec image et/ou audio...');
-
+      // OPTIMISATION 3: Envoi rapide sans logs verbeux
       const response = await fetch(buildApiUrl('/api/waste'), {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`
-          // Ne pas définir Content-Type, le navigateur le fera automatiquement avec boundary pour FormData
         },
         body: formData
       });
 
-      console.log('📥 Réponse du serveur:', response.status, response.statusText);
-
       const responseData = await response.json();
-      console.log('📥 Données de la réponse:', responseData);
       
       if (!response.ok) {
         throw new Error(responseData.error || responseData.message || "Erreur lors de l'enregistrement.");
       }
 
-      // Créer une notification après succès
-      try {
-        await fetch(buildApiUrl('/api/notifications'), {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            title: "Signalement reçu",
-            message: "Votre signalement a été enregistré avec succès.",
-            type: "success"
-          })
-        });
-      } catch (notifError) {
-        console.log('Erreur notification (non bloquante):', notifError);
-      }
-
+      // OPTIMISATION 4: Notification locale immédiate (pas d'appel serveur)
       addNotification({
         userId: user.id,
-        title: 'Signalement reçu',
+        title: 'Signalement envoyé !',
         message: 'Votre signalement a été enregistré avec succès.',
         read: false
       });
 
+      // OPTIMISATION 5: Reset immédiat + redirection rapide
       setSuccess(true);
       setDescription('');
       setWasteType('plastique');
@@ -238,22 +218,60 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       setAudioBlob(null);
       setAudioDuration(0);
 
-      // Callback de succès ou redirection
+      // Redirection immédiate (pas de délai)
       if (onSuccess) {
-        setTimeout(() => {
-          onSuccess();
-        }, 2000);
+        onSuccess();
       } else {
-        setTimeout(() => {
-          window.location.href = '/map';
-        }, 2000);
+        window.location.href = '/map';
       }
+
     } catch (err: any) {
-      console.error('❌ Erreur complète:', err);
+      console.error('❌ Erreur:', err);
       setError(err.message || 'Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // OPTIMISATION 6: Fonction de compression d'image
+  const compressImage = (file: File, quality: number): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Redimensionner si trop grand
+        const maxWidth = 1200;
+        const maxHeight = 900;
+        let { width, height } = img;
+        
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width *= ratio;
+          height *= ratio;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file); // Fallback si compression échoue
+          }
+        }, 'image/jpeg', quality);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
   };
 
   return (

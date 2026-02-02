@@ -101,7 +101,7 @@ class CloudinaryService {
     }
 
     /**
-     * Upload une image vers Cloudinary
+     * Upload une image vers Cloudinary (optimisé pour la vitesse)
      */
     static async uploadToCloudinary(buffer, publicId, folder = 'waste-reports') {
         return new Promise((resolve, reject) => {
@@ -111,7 +111,9 @@ class CloudinaryService {
                     folder: folder,
                     resource_type: 'image',
                     format: 'jpg',
-                    quality: 'auto'
+                    quality: 'auto:low', // Qualité optimisée pour la vitesse
+                    fetch_format: 'auto',
+                    flags: 'progressive' // Chargement progressif
                 },
                 (error, result) => {
                     if (error) {
@@ -125,103 +127,64 @@ class CloudinaryService {
     }
 
     /**
-     * Traiter une image et créer toutes les tailles sur Cloudinary
+     * Traiter une image et créer toutes les tailles sur Cloudinary (optimisé)
      */
     static async processImage(imageBuffer, originalFilename) {
         try {
-            // Validation
+            // Validation rapide
             const validation = this.validateImage(imageBuffer, originalFilename);
             if (!validation.isValid) {
                 throw new Error(validation.errors.join(', '));
-            }
-
-            // Métadonnées originales
-            const metadata = await this.getImageMetadata(imageBuffer);
-            
-            // Vérifier les dimensions maximales
-            if (metadata.width > this.MAX_DIMENSIONS.original.width || 
-                metadata.height > this.MAX_DIMENSIONS.original.height) {
-                throw new Error(`L'image est trop grande. Maximum: ${this.MAX_DIMENSIONS.original.width}x${this.MAX_DIMENSIONS.original.height}`);
             }
 
             // Générer un identifiant unique
             const uniqueId = uuidv4();
             const basePublicId = `${uniqueId}_${Date.now()}`;
 
-            const results = {
-                original: null,
-                medium: null,
-                thumbnail: null
-            };
+            // OPTIMISATION: Traitement parallèle des 3 tailles
+            const [originalBuffer, mediumBuffer, thumbnailBuffer] = await Promise.all([
+                this.resizeImage(imageBuffer, this.MAX_DIMENSIONS.original, 85), // Qualité réduite
+                this.resizeImage(imageBuffer, this.MAX_DIMENSIONS.medium, 80),
+                this.resizeImage(imageBuffer, this.MAX_DIMENSIONS.thumbnail, 70)
+            ]);
 
-            // Image originale (redimensionnée si nécessaire)
-            const originalBuffer = await this.resizeImage(
-                imageBuffer, 
-                this.MAX_DIMENSIONS.original,
-                90
-            );
-            
-            const originalUpload = await this.uploadToCloudinary(
-                originalBuffer, 
-                `${basePublicId}_original`
-            );
+            // OPTIMISATION: Upload parallèle vers Cloudinary
+            const [originalUpload, mediumUpload, thumbnailUpload] = await Promise.all([
+                this.uploadToCloudinary(originalBuffer, `${basePublicId}_original`),
+                this.uploadToCloudinary(mediumBuffer, `${basePublicId}_medium`),
+                this.uploadToCloudinary(thumbnailBuffer, `${basePublicId}_thumbnail`)
+            ]);
 
-            results.original = {
-                url: originalUpload.secure_url,
-                publicId: originalUpload.public_id,
-                size: originalBuffer.length,
-                dimensions: {
-                    width: originalUpload.width,
-                    height: originalUpload.height
+            return {
+                original: {
+                    url: originalUpload.secure_url,
+                    publicId: originalUpload.public_id,
+                    size: originalBuffer.length,
+                    dimensions: {
+                        width: originalUpload.width,
+                        height: originalUpload.height
+                    },
+                    mimeType: 'image/jpeg'
                 },
-                mimeType: 'image/jpeg'
-            };
-
-            // Image medium
-            const mediumBuffer = await this.resizeImage(
-                imageBuffer,
-                this.MAX_DIMENSIONS.medium,
-                80
-            );
-            
-            const mediumUpload = await this.uploadToCloudinary(
-                mediumBuffer, 
-                `${basePublicId}_medium`
-            );
-
-            results.medium = {
-                url: mediumUpload.secure_url,
-                publicId: mediumUpload.public_id,
-                size: mediumBuffer.length,
-                dimensions: {
-                    width: mediumUpload.width,
-                    height: mediumUpload.height
+                medium: {
+                    url: mediumUpload.secure_url,
+                    publicId: mediumUpload.public_id,
+                    size: mediumBuffer.length,
+                    dimensions: {
+                        width: mediumUpload.width,
+                        height: mediumUpload.height
+                    }
+                },
+                thumbnail: {
+                    url: thumbnailUpload.secure_url,
+                    publicId: thumbnailUpload.public_id,
+                    size: thumbnailBuffer.length,
+                    dimensions: {
+                        width: thumbnailUpload.width,
+                        height: thumbnailUpload.height
+                    }
                 }
             };
-
-            // Thumbnail
-            const thumbnailBuffer = await this.resizeImage(
-                imageBuffer,
-                this.MAX_DIMENSIONS.thumbnail,
-                70
-            );
-            
-            const thumbnailUpload = await this.uploadToCloudinary(
-                thumbnailBuffer, 
-                `${basePublicId}_thumbnail`
-            );
-
-            results.thumbnail = {
-                url: thumbnailUpload.secure_url,
-                publicId: thumbnailUpload.public_id,
-                size: thumbnailBuffer.length,
-                dimensions: {
-                    width: thumbnailUpload.width,
-                    height: thumbnailUpload.height
-                }
-            };
-
-            return results;
 
         } catch (error) {
             throw new Error(`Erreur lors du traitement de l'image: ${error.message}`);

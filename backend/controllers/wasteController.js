@@ -47,45 +47,53 @@ export const createWasteReport = async (req, res) => {
             });
         }
 
+        // OPTIMISATION BACKEND: Traitement parallèle image + audio
+        const processingPromises = [];
+        
+        // Traiter l'image en parallèle
+        if (req.files?.image?.[0]) {
+            const imageFile = req.files.image[0];
+            processingPromises.push(
+                HybridImageService.processImage(imageFile.buffer, imageFile.originalname)
+                    .then(result => ({ type: 'image', data: result }))
+                    .catch(error => ({ type: 'image', error: error.message }))
+            );
+        }
+
+        // Traiter l'audio en parallèle
+        if (req.files?.audio?.[0]) {
+            const audioFile = req.files.audio[0];
+            const audioDuration = parseInt(req.body.audioDuration) || 0;
+            processingPromises.push(
+                HybridImageService.processAudio(audioFile.buffer, audioFile.originalname, audioDuration)
+                    .then(result => ({ type: 'audio', data: result }))
+                    .catch(error => ({ type: 'audio', error: error.message }))
+            );
+        }
+
+        // Attendre tous les traitements en parallèle
+        const results = await Promise.all(processingPromises);
+        
         let images = null;
         let audio = null;
-
-        // Traiter l'image si elle existe
-        if (req.files?.image?.[0]) {
-            try {
-                console.log('📸 Traitement de l\'image...');
-                const imageFile = req.files.image[0];
-                images = await HybridImageService.processImage(imageFile.buffer, imageFile.originalname);
-                console.log('✅ Image traitée avec succès:', images.original?.url);
-            } catch (imageError) {
+        
+        // Traiter les résultats
+        for (const result of results) {
+            if (result.error) {
                 return res.status(400).json({
                     success: false,
-                    error: `Erreur lors du traitement de l'image: ${imageError.message}`
+                    error: `Erreur lors du traitement ${result.type}: ${result.error}`
                 });
+            }
+            
+            if (result.type === 'image') {
+                images = result.data;
+            } else if (result.type === 'audio') {
+                audio = result.data;
             }
         }
 
-        // Traiter l'audio si il existe
-        if (req.files?.audio?.[0]) {
-            try {
-                console.log('🎵 Traitement de l\'audio...');
-                const audioFile = req.files.audio[0];
-                const audioDuration = parseInt(req.body.audioDuration) || 0;
-                
-                audio = await HybridImageService.processAudio(
-                    audioFile.buffer, 
-                    audioFile.originalname,
-                    audioDuration
-                );
-                console.log('✅ Audio traité avec succès:', audio.url);
-            } catch (audioError) {
-                return res.status(400).json({
-                    success: false,
-                    error: `Erreur lors du traitement de l'audio: ${audioError.message}`
-                });
-            }
-        }
-
+        // Créer le signalement immédiatement
         const wasteReport = await WasteReport.create({
             userId: req.user._id,
             description,
@@ -95,49 +103,39 @@ export const createWasteReport = async (req, res) => {
             wasteType
         });
 
-        // Opérations asynchrones pour améliorer les performances
-        const asyncOperations = [
-            // Ajouter des points à l'utilisateur
-            User.findByIdAndUpdate(req.user._id, {
-                $inc: { points: 10 } // 10 points par signalement
-            }),
-
-            // 🔔 NOTIFICATION: Points attribués au citoyen
-            NotificationService.notifyUserPointsAwarded(
-                req.user._id, 
-                10, 
-                'la création d\'un signalement de déchet'
-            ),
-
-            // 🔔 NOTIFICATION: Alertes aux admins
-            NotificationService.notifyAdminsNewWasteReport(wasteReport),
-
-            // 🏆 GAMIFICATION: Vérifier et attribuer les badges
-            GamificationService.checkAndAwardBadges(req.user._id),
-
-            // Audit pour création de signalement
-            logManualAudit(
-                'WASTE_REPORT_CREATE',
-                req.user,
-                `Nouveau signalement de déchet créé dans la préfecture de Pita`,
-                { 
-                    reportId: wasteReport._id,
-                    wasteType: wasteType,
-                    location: location,
-                    pointsAwarded: 10 
-                }
-            )
-        ];
-
-        // Exécuter toutes les opérations en parallèle (non-bloquant)
-        Promise.allSettled(asyncOperations).catch(error => {
-            console.error('❌ Erreur dans les opérations asynchrones:', error);
-        });
-
+        // OPTIMISATION: Réponse immédiate, opérations en arrière-plan
         res.status(201).json({
             success: true,
-            message: 'Signalement créé avec succès. 10 points ajoutés!',
+            message: 'Signalement créé avec succès !',
             data: wasteReport
+        });
+
+        // Opérations asynchrones NON-BLOQUANTES (en arrière-plan)
+        setImmediate(async () => {
+            try {
+                await Promise.allSettled([
+                    // Ajouter des points à l'utilisateur
+                    User.findByIdAndUpdate(req.user._id, {
+                        $inc: { points: 10 }
+                    }),
+
+                    // Notifications aux admins (en arrière-plan)
+                    NotificationService.notifyAdminsNewWasteReport(wasteReport),
+
+                    // Gamification (en arrière-plan)
+                    GamificationService.checkAndAwardBadges(req.user._id),
+
+                    // Audit (en arrière-plan)
+                    logManualAudit(
+                        'WASTE_REPORT_CREATE',
+                        req.user,
+                        `Nouveau signalement créé`,
+                        { reportId: wasteReport._id, wasteType }
+                    )
+                ]);
+            } catch (bgError) {
+                console.error('❌ Erreur opérations arrière-plan:', bgError);
+            }
         });
     } catch (error) {
         if (error.name === 'ValidationError') {
