@@ -9,14 +9,8 @@ const wasteReportSchema = new mongoose.Schema({
     description: {
         type: String,
         trim: true,
-        maxlength: [500, 'La description ne peut pas dépasser 500 caractères'],
-        validate: {
-            validator: function() {
-                // Description OU audio requis (pas les deux obligatoires)
-                return this.description || this.audio?.url;
-            },
-            message: 'Une description écrite ou un enregistrement vocal est requis'
-        }
+        maxlength: [500, 'La description ne peut pas dépasser 500 caractères']
+        // Validation déplacée vers le middleware pour cohérence
     },
     images: {
         original: {
