@@ -187,7 +187,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     }
 
     if (!description && !audioBlob) {
-      setError('Veuillez choisir une méthode de description : soit écrire un texte, soit enregistrer un message vocal.');
+      setError('Veuillez fournir une description écrite ou un enregistrement vocal.');
       return;
     }
 
@@ -344,85 +344,37 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Description OU Vocal - Choix clair */}
+        {/* Description avec composant vocal */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Description du déchet *
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            Description du déchet
           </label>
-          
-          {/* Indicateur de choix */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-800 font-medium">
-              📝 Choisissez votre méthode de description :
-            </p>
-            <p className="text-xs text-blue-600 mt-1">
-              Vous pouvez soit écrire une description, soit enregistrer un message vocal (pas les deux obligatoires)
-            </p>
-          </div>
-
-          {/* Option 1: Description écrite */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-medium text-gray-600">Option 1: Description écrite</span>
-              {description && description.trim().length > 0 && (
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">✓ Écrite</span>
-              )}
-            </div>
+          <div className="relative">
             <textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="Décrivez le type de déchet, son état, sa localisation précise..."
+              rows={4}
+              className="w-full px-3 py-2 pr-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Décrivez le type de déchet et son état... ou utilisez l'enregistrement vocal"
+            />
+            
+            {/* Composant d'enregistrement vocal */}
+            <WhatsAppVoiceInput 
+              onAudioChange={handleAudioChange}
+              disabled={isSubmitting}
             />
           </div>
-
-          {/* Séparateur OU */}
-          <div className="flex items-center my-4">
-            <div className="flex-1 border-t border-gray-300"></div>
-            <span className="px-3 text-sm text-gray-500 bg-white">OU</span>
-            <div className="flex-1 border-t border-gray-300"></div>
-          </div>
-
-          {/* Option 2: Message vocal */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-medium text-gray-600">Option 2: Message vocal</span>
-              {audioBlob && (
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                  ✓ Enregistré ({audioDuration}s)
-                </span>
-              )}
-            </div>
-            
-            <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-              <WhatsAppVoiceInput 
-                onAudioChange={handleAudioChange}
-                disabled={isSubmitting}
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                {audioBlob ? (
-                  <span className="text-green-600">
-                    ✅ Message vocal enregistré - Vous pouvez envoyer le signalement
-                  </span>
-                ) : (
-                  "Maintenez le micro enfoncé pour enregistrer votre description vocale"
-                )}
-              </p>
-            </div>
-          </div>
-
-          {/* Statut global */}
-          <div className="mt-3 p-2 rounded-lg bg-gray-50">
-            <p className="text-xs text-gray-600">
-              <strong>Statut:</strong> {
-                (description && description.trim().length > 0) || audioBlob
-                  ? <span className="text-green-600">✅ Description fournie</span>
-                  : <span className="text-orange-600">⚠️ Description requise (écrite OU vocale)</span>
-              }
-            </p>
-          </div>
+          
+          <p className="text-xs text-gray-500 mt-1">
+            {audioBlob ? (
+              <span className="text-green-600">
+                ✅ Enregistrement vocal ajouté ({audioDuration}s)
+              </span>
+            ) : (
+              "Vous pouvez écrire une description OU enregistrer un message vocal"
+            )}
+          </p>
         </div>
 
         {/* Type de déchet */}
@@ -493,55 +445,18 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         {/* Localisation */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Localisation réelle *
+            Localisation *
           </label>
           
-          {/* Instructions pour la géolocalisation */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-yellow-800 font-medium">
-              📍 Pour obtenir votre position réelle :
-            </p>
-            <ul className="text-xs text-yellow-700 mt-1 space-y-1">
-              <li>• Autorisez la géolocalisation quand votre navigateur le demande</li>
-              <li>• Assurez-vous que votre GPS est activé</li>
-              <li>• Soyez dans un endroit avec bonne réception</li>
-            </ul>
-          </div>
-          
-          <div className="flex gap-2 mb-3">
-            <button
-              type="button"
-              onClick={getCurrentLocation}
-              disabled={locationLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <MapPin className="w-4 h-4" />
-              {locationLoading ? 'Localisation en cours...' : 'Obtenir ma position GPS'}
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => {
-                const info = [
-                  `Géolocalisation supportée: ${!!navigator.geolocation}`,
-                  `Protocol: ${window.location.protocol}`,
-                  `Host: ${window.location.host}`,
-                  `User Agent: ${navigator.userAgent.substring(0, 50)}...`
-                ];
-                alert('Diagnostic Géolocalisation:\n\n' + info.join('\n'));
-                console.log('🔍 Diagnostic complet:', {
-                  geolocation: !!navigator.geolocation,
-                  protocol: window.location.protocol,
-                  host: window.location.host,
-                  userAgent: navigator.userAgent,
-                  permissions: navigator.permissions ? 'Supporté' : 'Non supporté'
-                });
-              }}
-              className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
-            >
-              🔍 Diagnostic
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={getCurrentLocation}
+            disabled={locationLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+          >
+            <MapPin className="w-4 h-4" />
+            {locationLoading ? 'Localisation en cours...' : 'Partager ma localisation'}
+          </button>
 
           {location && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -549,13 +464,13 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
                 <MapPin className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-green-800">
-                    <strong>Adresse:</strong> {location.address}
+                    <strong>Position:</strong> {location.address}
                   </p>
                   <p className="text-sm text-green-700">
-                    <strong>Coordonnées GPS:</strong> {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                    <strong>Coordonnées:</strong> {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
                   </p>
                   <p className="text-sm text-green-600 mt-1">
-                    ✅ Position réelle confirmée
+                    ✅ Localisation confirmée
                   </p>
                 </div>
               </div>
