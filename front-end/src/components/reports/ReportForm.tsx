@@ -70,54 +70,90 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setLocationLoading(true);
     setError(null);
 
-    // Si pas de géolocalisation, utiliser position par défaut
     if (!navigator.geolocation) {
-      setLocation({
-        latitude: 11.054444,
-        longitude: -12.396111,
-        address: 'Pita, Guinée'
-      });
+      setError('Votre navigateur ne supporte pas la géolocalisation. Utilisez Chrome, Firefox ou Safari.');
       setLocationLoading(false);
       return;
     }
 
-    // Essayer la géolocalisation avec timeout court
-    const timeoutId = setTimeout(() => {
-      // Si ça prend trop de temps, utiliser position par défaut
-      setLocation({
-        latitude: 11.054444,
-        longitude: -12.396111,
-        address: 'Pita, Guinée (position par défaut)'
-      });
+    // Vérifier HTTPS
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      setError('La géolocalisation nécessite une connexion HTTPS. Vérifiez l\'URL de votre site.');
       setLocationLoading(false);
-    }, 5000); // 5 secondes max
+      return;
+    }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        clearTimeout(timeoutId);
-        const { latitude, longitude } = position.coords;
+      async (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
         
-        setLocation({
-          latitude,
-          longitude,
-          address: `Position GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
-        });
-        setLocationLoading(false);
+        console.log('📍 Position GPS obtenue:', { latitude, longitude, accuracy });
+
+        try {
+          // Obtenir l'adresse réelle
+          const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=fr`
+          );
+          
+          let address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+          
+          if (response.ok) {
+            const data = await response.json();
+            const parts = [];
+            if (data.locality) parts.push(data.locality);
+            if (data.city && data.city !== data.locality) parts.push(data.city);
+            if (data.principalSubdivision) parts.push(data.principalSubdivision);
+            if (data.countryName) parts.push(data.countryName);
+            
+            if (parts.length > 0) {
+              address = parts.join(', ');
+            }
+          }
+
+          setLocation({
+            latitude,
+            longitude,
+            address: address
+          });
+          
+          setLocationLoading(false);
+          
+        } catch (geoError) {
+          // Même si l'adresse échoue, utiliser les coordonnées GPS
+          setLocation({
+            latitude,
+            longitude,
+            address: `Position GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+          });
+          setLocationLoading(false);
+        }
       },
       (error) => {
-        clearTimeout(timeoutId);
-        // En cas d'erreur, utiliser position par défaut
-        setLocation({
-          latitude: 11.054444,
-          longitude: -12.396111,
-          address: 'Pita, Guinée (position par défaut)'
-        });
+        console.error('❌ Erreur géolocalisation:', error);
+        
+        let errorMessage = '';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Permission refusée. Autorisez la géolocalisation dans votre navigateur et rechargez la page.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Position non disponible. Activez votre GPS et assurez-vous d\'avoir une bonne réception.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Délai dépassé. Réessayez dans un endroit avec meilleure réception GPS.';
+            break;
+          default:
+            errorMessage = 'Erreur inconnue. Vérifiez vos paramètres GPS et réessayez.';
+        }
+        
+        setError(errorMessage);
         setLocationLoading(false);
       },
       {
-        enableHighAccuracy: false,
-        timeout: 4000,
-        maximumAge: 60000
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
       }
     );
   };
