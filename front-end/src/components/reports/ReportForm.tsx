@@ -70,59 +70,108 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setLocationLoading(true);
     setError(null);
 
-    // Version simple et robuste
+    console.log('🔍 Démarrage géolocalisation...');
+
+    // Vérifier le support
     if (!navigator.geolocation) {
-      // Fallback : utiliser Pita par défaut
-      setLocation({
-        latitude: 11.054444,
-        longitude: -12.396111,
-        address: 'Pita, Guinée (position par défaut)'
-      });
+      setError('Géolocalisation non supportée par ce navigateur.');
       setLocationLoading(false);
       return;
     }
 
-    // Options simplifiées
+    // Vérifier HTTPS (requis pour géolocalisation)
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      setError('La géolocalisation nécessite une connexion HTTPS sécurisée.');
+      setLocationLoading(false);
+      return;
+    }
+
+    // Options optimisées pour fonctionner
     const options = {
-      enableHighAccuracy: false, // Plus rapide
-      timeout: 8000, // 8 secondes max
-      maximumAge: 300000 // 5 minutes de cache OK
+      enableHighAccuracy: true, // Précision maximale
+      timeout: 20000, // 20 secondes
+      maximumAge: 0 // Pas de cache, position fraîche
     };
 
+    console.log('📍 Demande de position GPS...');
+
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
+      async (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
         
-        // Validation simple : zone élargie autour de Pita
-        const isNearPita = (
-          latitude >= 10.8 && latitude <= 11.3 && 
-          longitude >= -12.7 && longitude <= -12.1
-        );
-        
-        if (isNearPita) {
+        console.log('✅ Position obtenue:', { 
+          latitude, 
+          longitude, 
+          accuracy: accuracy + 'm' 
+        });
+
+        try {
+          // Obtenir l'adresse réelle avec géocodage inverse
+          const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=fr`
+          );
+          
+          let address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log('🏠 Adresse trouvée:', data);
+            
+            // Construire l'adresse complète
+            const parts = [];
+            if (data.locality) parts.push(data.locality);
+            if (data.city && data.city !== data.locality) parts.push(data.city);
+            if (data.principalSubdivision) parts.push(data.principalSubdivision);
+            if (data.countryName) parts.push(data.countryName);
+            
+            if (parts.length > 0) {
+              address = parts.join(', ');
+            }
+          }
+
           setLocation({
             latitude,
             longitude,
-            address: `Pita, Guinée (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`
+            address: address
           });
-        } else {
-          // Même si hors zone, utiliser Pita par défaut
+          
+          console.log('✅ Localisation définie:', address);
+          
+        } catch (geoError) {
+          console.log('⚠️ Erreur géocodage, utilisation coordonnées:', geoError);
+          
+          // Même si le géocodage échoue, utiliser les coordonnées
           setLocation({
-            latitude: 11.054444,
-            longitude: -12.396111,
-            address: 'Pita, Guinée (position ajustée)'
+            latitude,
+            longitude,
+            address: `Position GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
           });
         }
         
         setLocationLoading(false);
       },
       (error) => {
-        // En cas d'erreur, toujours utiliser Pita par défaut
-        setLocation({
-          latitude: 11.054444,
-          longitude: -12.396111,
-          address: 'Pita, Guinée (position par défaut)'
-        });
+        console.error('❌ Erreur géolocalisation:', error);
+        
+        let errorMessage = 'Impossible de déterminer votre localisation.';
+        let solution = '';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Permission de géolocalisation refusée.';
+            solution = 'Autorisez la géolocalisation dans votre navigateur et rechargez la page.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Position GPS non disponible.';
+            solution = 'Vérifiez que votre GPS est activé et que vous avez une bonne réception.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Délai d\'attente dépassé.';
+            solution = 'Réessayez dans un endroit avec une meilleure réception GPS.';
+            break;
+        }
+        
+        setError(`${errorMessage} ${solution}`);
         setLocationLoading(false);
       },
       options
@@ -444,18 +493,55 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         {/* Localisation */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Localisation *
+            Localisation réelle *
           </label>
           
-          <button
-            type="button"
-            onClick={getCurrentLocation}
-            disabled={locationLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
-          >
-            <MapPin className="w-4 h-4" />
-            {locationLoading ? 'Localisation en cours...' : 'Obtenir ma position'}
-          </button>
+          {/* Instructions pour la géolocalisation */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-yellow-800 font-medium">
+              📍 Pour obtenir votre position réelle :
+            </p>
+            <ul className="text-xs text-yellow-700 mt-1 space-y-1">
+              <li>• Autorisez la géolocalisation quand votre navigateur le demande</li>
+              <li>• Assurez-vous que votre GPS est activé</li>
+              <li>• Soyez dans un endroit avec bonne réception</li>
+            </ul>
+          </div>
+          
+          <div className="flex gap-2 mb-3">
+            <button
+              type="button"
+              onClick={getCurrentLocation}
+              disabled={locationLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MapPin className="w-4 h-4" />
+              {locationLoading ? 'Localisation en cours...' : 'Obtenir ma position GPS'}
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => {
+                const info = [
+                  `Géolocalisation supportée: ${!!navigator.geolocation}`,
+                  `Protocol: ${window.location.protocol}`,
+                  `Host: ${window.location.host}`,
+                  `User Agent: ${navigator.userAgent.substring(0, 50)}...`
+                ];
+                alert('Diagnostic Géolocalisation:\n\n' + info.join('\n'));
+                console.log('🔍 Diagnostic complet:', {
+                  geolocation: !!navigator.geolocation,
+                  protocol: window.location.protocol,
+                  host: window.location.host,
+                  userAgent: navigator.userAgent,
+                  permissions: navigator.permissions ? 'Supporté' : 'Non supporté'
+                });
+              }}
+              className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+            >
+              🔍 Diagnostic
+            </button>
+          </div>
 
           {location && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -463,13 +549,13 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
                 <MapPin className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-green-800">
-                    <strong>Position:</strong> {location.address}
+                    <strong>Adresse:</strong> {location.address}
                   </p>
                   <p className="text-sm text-green-700">
-                    <strong>Coordonnées:</strong> {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                    <strong>Coordonnées GPS:</strong> {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
                   </p>
                   <p className="text-sm text-green-600 mt-1">
-                    ✅ Position confirmée
+                    ✅ Position réelle confirmée
                   </p>
                 </div>
               </div>
