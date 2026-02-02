@@ -93,6 +93,11 @@ export const createWasteReport = async (req, res) => {
             }
         }
 
+        // 🔍 DEBUG TEMPORAIRE
+        console.log('🔍 DEBUG CREATION:');
+        console.log('- description:', JSON.stringify(description));
+        console.log('- audio:', audio ? 'présent' : 'absent');
+
         // Créer le signalement immédiatement
         const wasteReport = await WasteReport.create({
             userId: req.user._id,

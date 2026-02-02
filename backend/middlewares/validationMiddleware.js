@@ -76,6 +76,14 @@ export const validateWasteReport = (req, res, next) => {
     const hasDescription = description && description.trim().length > 0;
     const hasAudio = audioFile && audioFile.size > 0;
     
+    // 🔍 DEBUG TEMPORAIRE
+    console.log('🔍 DEBUG VALIDATION:');
+    console.log('- description:', JSON.stringify(description));
+    console.log('- hasDescription:', hasDescription);
+    console.log('- audioFile:', audioFile ? 'présent' : 'absent');
+    console.log('- hasAudio:', hasAudio);
+    console.log('- Validation OU:', hasDescription || hasAudio);
+    
     if (!hasDescription && !hasAudio) {
         errors.push('Une description écrite ou un enregistrement vocal est requis');
     }
