@@ -138,7 +138,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     }
 
     if (!description && !audioBlob) {
-      setError('Veuillez fournir une description écrite ou un enregistrement vocal.');
+      setError('Veuillez choisir une méthode de description : soit écrire un texte, soit enregistrer un message vocal.');
       return;
     }
 
@@ -295,37 +295,85 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Description avec composant vocal */}
+        {/* Description OU Vocal - Choix clair */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-            Description du déchet
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Description du déchet *
           </label>
-          <div className="relative">
+          
+          {/* Indicateur de choix */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800 font-medium">
+              📝 Choisissez votre méthode de description :
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Vous pouvez soit écrire une description, soit enregistrer un message vocal (pas les deux obligatoires)
+            </p>
+          </div>
+
+          {/* Option 1: Description écrite */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-medium text-gray-600">Option 1: Description écrite</span>
+              {description && description.trim().length > 0 && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">✓ Écrite</span>
+              )}
+            </div>
             <textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="w-full px-3 py-2 pr-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="Décrivez le type de déchet et son état... ou utilisez l'enregistrement vocal"
-            />
-            
-            {/* Composant d'enregistrement vocal */}
-            <WhatsAppVoiceInput 
-              onAudioChange={handleAudioChange}
-              disabled={isSubmitting}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Décrivez le type de déchet, son état, sa localisation précise..."
             />
           </div>
-          
-          <p className="text-xs text-gray-500 mt-1">
-            {audioBlob ? (
-              <span className="text-green-600">
-                ✅ Enregistrement vocal ajouté ({audioDuration}s)
-              </span>
-            ) : (
-              "Appuyez longuement sur le micro pour enregistrer un message vocal"
-            )}
-          </p>
+
+          {/* Séparateur OU */}
+          <div className="flex items-center my-4">
+            <div className="flex-1 border-t border-gray-300"></div>
+            <span className="px-3 text-sm text-gray-500 bg-white">OU</span>
+            <div className="flex-1 border-t border-gray-300"></div>
+          </div>
+
+          {/* Option 2: Message vocal */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-medium text-gray-600">Option 2: Message vocal</span>
+              {audioBlob && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                  ✓ Enregistré ({audioDuration}s)
+                </span>
+              )}
+            </div>
+            
+            <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+              <WhatsAppVoiceInput 
+                onAudioChange={handleAudioChange}
+                disabled={isSubmitting}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                {audioBlob ? (
+                  <span className="text-green-600">
+                    ✅ Message vocal enregistré - Vous pouvez envoyer le signalement
+                  </span>
+                ) : (
+                  "Maintenez le micro enfoncé pour enregistrer votre description vocale"
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Statut global */}
+          <div className="mt-3 p-2 rounded-lg bg-gray-50">
+            <p className="text-xs text-gray-600">
+              <strong>Statut:</strong> {
+                (description && description.trim().length > 0) || audioBlob
+                  ? <span className="text-green-600">✅ Description fournie</span>
+                  : <span className="text-orange-600">⚠️ Description requise (écrite OU vocale)</span>
+              }
+            </p>
+          </div>
         </div>
 
         {/* Type de déchet */}
