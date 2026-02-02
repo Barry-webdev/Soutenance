@@ -71,24 +71,15 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setError(null);
 
     if (!navigator.geolocation) {
-      setError('Votre navigateur ne supporte pas la géolocalisation. Utilisez Chrome, Firefox ou Safari.');
-      setLocationLoading(false);
-      return;
-    }
-
-    // Vérifier HTTPS
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-      setError('La géolocalisation nécessite une connexion HTTPS. Vérifiez l\'URL de votre site.');
+      setError('Votre navigateur ne supporte pas la géolocalisation.');
       setLocationLoading(false);
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
+        const { latitude, longitude } = position.coords;
         
-        console.log('📍 Position GPS obtenue:', { latitude, longitude, accuracy });
-
         try {
           // Obtenir l'adresse réelle
           const response = await fetch(
@@ -116,44 +107,40 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
             address: address
           });
           
-          setLocationLoading(false);
-          
         } catch (geoError) {
-          // Même si l'adresse échoue, utiliser les coordonnées GPS
           setLocation({
             latitude,
             longitude,
             address: `Position GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
           });
-          setLocationLoading(false);
         }
+        
+        setLocationLoading(false);
       },
       (error) => {
-        console.error('❌ Erreur géolocalisation:', error);
-        
         let errorMessage = '';
         
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Permission refusée. Autorisez la géolocalisation dans votre navigateur et rechargez la page.';
+            errorMessage = 'Autorisez la géolocalisation dans votre navigateur.';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Position non disponible. Activez votre GPS et assurez-vous d\'avoir une bonne réception.';
+            errorMessage = 'Activez votre GPS.';
             break;
           case error.TIMEOUT:
-            errorMessage = 'Délai dépassé. Réessayez dans un endroit avec meilleure réception GPS.';
+            errorMessage = 'GPS trop lent. Réessayez.';
             break;
           default:
-            errorMessage = 'Erreur inconnue. Vérifiez vos paramètres GPS et réessayez.';
+            errorMessage = 'Erreur GPS. Réessayez.';
         }
         
         setError(errorMessage);
         setLocationLoading(false);
       },
       {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
+        enableHighAccuracy: false, // Plus rapide
+        timeout: 8000, // 8 secondes max
+        maximumAge: 60000 // 1 minute de cache
       }
     );
   };
@@ -166,20 +153,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       return;
     }
 
-    // Vérifier qu'on a soit description soit audio
-    const hasDescription = description && description.trim().length > 0;
-    const hasAudio = audioBlob && audioBlob.size > 0;
-    
-    console.log('🔍 Validation:', {
-      description: description,
-      descriptionLength: description?.length,
-      hasDescription: hasDescription,
-      audioBlob: audioBlob,
-      audioBlobSize: audioBlob?.size,
-      hasAudio: hasAudio
-    });
-    
-    if (!hasDescription && !hasAudio) {
+    // Validation simple : description OU audio (pas les deux obligatoires)
+    if (!description?.trim() && !audioBlob) {
       setError('Veuillez fournir une description écrite ou un enregistrement vocal.');
       return;
     }
@@ -227,7 +202,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         formData.append('audioDuration', audioDuration.toString());
       }
 
-      // OPTIMISATION 3: Envoi rapide sans logs verbeux
+      // OPTIMISATION 3: Envoi rapide avec gestion token expiré
       const response = await fetch(buildApiUrl('/api/waste'), {
         method: 'POST',
         headers: { 
@@ -237,6 +212,16 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       });
 
       const responseData = await response.json();
+      
+      // Gestion token expiré
+      if (response.status === 401 || responseData.message?.includes('token') || responseData.error?.includes('token')) {
+        localStorage.removeItem('token');
+        setError('Session expirée. Veuillez vous reconnecter.');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+        return;
+      }
       
       if (!response.ok) {
         throw new Error(responseData.error || responseData.message || "Erreur lors de l'enregistrement.");
