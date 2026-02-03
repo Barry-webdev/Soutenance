@@ -72,20 +72,16 @@ export const validateWasteReport = (req, res, next) => {
     
     const errors = [];
     
-    // Description OU audio requis (pas les deux obligatoires)
+    // Description OU audio requis (EXCLUSIF - pas les deux ensemble)
     const hasDescription = description && description.trim().length > 0;
     const hasAudio = audioFile && audioFile.size > 0;
     
-    // 🔍 DEBUG TEMPORAIRE
-    console.log('🔍 DEBUG VALIDATION:');
-    console.log('- description:', JSON.stringify(description));
-    console.log('- hasDescription:', hasDescription);
-    console.log('- audioFile:', audioFile ? 'présent' : 'absent');
-    console.log('- hasAudio:', hasAudio);
-    console.log('- Validation OU:', hasDescription || hasAudio);
-    
     if (!hasDescription && !hasAudio) {
         errors.push('Une description écrite ou un enregistrement vocal est requis');
+    }
+    
+    if (hasDescription && hasAudio) {
+        errors.push('Veuillez choisir soit la description écrite, soit l\'enregistrement vocal (pas les deux)');
     }
     
     if (!wasteType) errors.push('Le type de déchet est obligatoire');

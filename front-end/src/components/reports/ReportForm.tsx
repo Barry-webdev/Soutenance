@@ -153,9 +153,14 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       return;
     }
 
-    // Validation simple : description OU audio (pas les deux obligatoires)
+    // Validation exclusive : description OU audio (pas les deux)
     if (!description?.trim() && !audioBlob) {
       setError('Veuillez fournir une description écrite ou un enregistrement vocal.');
+      return;
+    }
+
+    if (description?.trim() && audioBlob) {
+      setError('Veuillez choisir soit la description écrite, soit l\'enregistrement vocal (pas les deux).');
       return;
     }
 
@@ -190,8 +195,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       const formData = new FormData();
       formData.append('description', description);
       formData.append('wasteType', wasteType);
-      formData.append('location[lat]', location.latitude.toString());
-      formData.append('location[lng]', location.longitude.toString());
+      formData.append('location', JSON.stringify({
+        lat: location.latitude,
+        lng: location.longitude
+      }));
       formData.append('image', processedImageFile);
 
       if (audioBlob) {
@@ -333,24 +340,31 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 pr-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="Décrivez le type de déchet et son état... ou utilisez l'enregistrement vocal"
+              disabled={audioBlob !== null || isSubmitting}
+              className={`w-full px-3 py-2 pr-16 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                audioBlob ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
+              placeholder={audioBlob ? "Enregistrement vocal actif - description désactivée" : "Décrivez le type de déchet et son état..."}
             />
             
             {/* Composant d'enregistrement vocal */}
             <WhatsAppVoiceInput 
               onAudioChange={handleAudioChange}
-              disabled={isSubmitting}
+              disabled={isSubmitting || (description?.trim().length > 0)}
             />
           </div>
           
           <p className="text-xs text-gray-500 mt-1">
             {audioBlob ? (
               <span className="text-green-600">
-                ✅ Enregistrement vocal ajouté ({audioDuration}s)
+                ✅ Enregistrement vocal ajouté ({audioDuration}s) - Description désactivée
+              </span>
+            ) : description?.trim() ? (
+              <span className="text-blue-600">
+                ✅ Description écrite - Enregistrement vocal désactivé
               </span>
             ) : (
-              "Vous pouvez écrire une description OU enregistrer un message vocal"
+              "Choisissez : description écrite OU enregistrement vocal (pas les deux)"
             )}
           </p>
         </div>
