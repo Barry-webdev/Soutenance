@@ -71,14 +71,25 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setError(null);
 
     if (!navigator.geolocation) {
-      setError('Votre navigateur ne supporte pas la géolocalisation.');
+      setError('❌ Votre navigateur ne supporte pas la géolocalisation. Utilisez Chrome, Firefox ou Safari.');
       setLocationLoading(false);
       return;
     }
 
+    // 🔍 Vérifier si HTTPS (requis pour la géolocalisation)
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      setError('⚠️ La géolocalisation nécessite une connexion sécurisée (HTTPS).');
+      setLocationLoading(false);
+      return;
+    }
+
+    console.log('📍 Demande de géolocalisation...');
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        
+        console.log('✅ Position obtenue:', { latitude, longitude });
         
         try {
           // Obtenir l'adresse réelle
@@ -107,7 +118,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
             address: address
           });
           
+          console.log('✅ Adresse obtenue:', address);
+          
         } catch (geoError) {
+          console.warn('⚠️ Erreur récupération adresse:', geoError);
           setLocation({
             latitude,
             longitude,
@@ -118,29 +132,36 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         setLocationLoading(false);
       },
       (error) => {
+        console.error('❌ Erreur géolocalisation:', error);
+        
         let errorMessage = '';
+        let helpMessage = '';
         
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Autorisez la géolocalisation dans votre navigateur.';
+            errorMessage = '🚫 Permission refusée';
+            helpMessage = 'Autorisez la géolocalisation dans les paramètres de votre navigateur. Cliquez sur l\'icône 🔒 dans la barre d\'adresse.';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Activez votre GPS.';
+            errorMessage = '📡 Position indisponible';
+            helpMessage = 'Activez votre GPS et assurez-vous d\'avoir une connexion internet. Si vous êtes en intérieur, essayez de vous rapprocher d\'une fenêtre.';
             break;
           case error.TIMEOUT:
-            errorMessage = 'GPS trop lent. Réessayez.';
+            errorMessage = '⏱️ Délai dépassé';
+            helpMessage = 'Le GPS met trop de temps à répondre. Vérifiez que votre GPS est activé et réessayez.';
             break;
           default:
-            errorMessage = 'Erreur GPS. Réessayez.';
+            errorMessage = '❌ Erreur GPS';
+            helpMessage = 'Une erreur est survenue. Vérifiez vos paramètres GPS et réessayez.';
         }
         
-        setError(errorMessage);
+        setError(`${errorMessage}\n\n💡 ${helpMessage}`);
         setLocationLoading(false);
       },
       {
-        enableHighAccuracy: false, // Plus rapide
-        timeout: 8000, // 8 secondes max
-        maximumAge: 60000 // 1 minute de cache
+        enableHighAccuracy: true, // Meilleure précision
+        timeout: 30000, // 30 secondes (augmenté pour GPS lent)
+        maximumAge: 30000 // Cache de 30 secondes accepté
       }
     );
   };
