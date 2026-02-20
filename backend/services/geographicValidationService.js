@@ -5,24 +5,21 @@
  */
 
 class GeographicValidationService {
-    // Limites approximatives de la préfecture de Pita basées sur les sous-préfectures
-    // 🌍 ZONE ÉLARGIE pour couvrir toute la préfecture et ses périphéries
+    // Limites strictes de la préfecture de Pita uniquement
     static PITA_PREFECTURE_BOUNDS = {
-        // Coordonnées extrêmes élargies pour couvrir toute la zone
-        north: 11.50,    // Élargi au nord (était 11.25)
-        south: 10.30,    // Élargi au sud (était 10.55)
-        east: -12.00,    // Élargi à l'est (était -12.30)
-        west: -13.20     // Élargi à l'ouest (était -12.95)
+        north: 11.30,
+        south: 10.50,
+        east: -12.20,
+        west: -13.00
     };
 
-    // Centre de la préfecture de Pita (ville principale)
     static PITA_CENTER = {
         lat: 11.054444,
         lng: -12.396111
     };
 
-    // Rayon maximum depuis le centre (élargi à 80km pour couvrir toutes les périphéries)
-    static MAX_RADIUS_KM = 80;
+    // Rayon strict : 60km maximum depuis Pita centre
+    static MAX_RADIUS_KM = 60;
 
     /**
      * Vérifier si des coordonnées sont dans les limites de la préfecture de Pita

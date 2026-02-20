@@ -71,22 +71,19 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setError(null);
 
     if (!navigator.geolocation) {
-      setError('❌ Votre navigateur ne supporte pas la géolocalisation.');
+      setError('Votre navigateur ne supporte pas la géolocalisation.');
       setLocationLoading(false);
       return;
     }
 
-    console.log('📍 Demande de géolocalisation...');
-
-    // Tentative 1 : Position rapide (basse précision)
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        console.log('✅ Position obtenue:', { latitude, longitude });
         
         try {
           const response = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=fr`
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=fr`,
+            { signal: AbortSignal.timeout(3000) }
           );
           
           let address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
@@ -97,66 +94,31 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
             if (data.locality) parts.push(data.locality);
             if (data.city && data.city !== data.locality) parts.push(data.city);
             if (data.principalSubdivision) parts.push(data.principalSubdivision);
-            if (data.countryName) parts.push(data.countryName);
             
             if (parts.length > 0) {
               address = parts.join(', ');
             }
           }
 
+          setLocation({ latitude, longitude, address });
+        } catch {
           setLocation({
             latitude,
             longitude,
-            address: address
-          });
-          
-          console.log('✅ Adresse obtenue:', address);
-          
-        } catch (geoError) {
-          console.warn('⚠️ Erreur récupération adresse:', geoError);
-          setLocation({
-            latitude,
-            longitude,
-            address: `Position GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
           });
         }
         
         setLocationLoading(false);
       },
       (error) => {
-        console.error('❌ Erreur géolocalisation:', error);
-        
-        // Tentative 2 : Utiliser la dernière position connue
-        if ('geolocation' in navigator) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const { latitude, longitude } = position.coords;
-              setLocation({
-                latitude,
-                longitude,
-                address: `Position GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-              });
-              setLocationLoading(false);
-            },
-            () => {
-              setError('GPS indisponible. Activez votre GPS et autorisez la géolocalisation.');
-              setLocationLoading(false);
-            },
-            {
-              enableHighAccuracy: false,
-              timeout: 5000,
-              maximumAge: Infinity // Accepter n'importe quelle position en cache
-            }
-          );
-        } else {
-          setError('GPS indisponible. Activez votre GPS et autorisez la géolocalisation.');
-          setLocationLoading(false);
-        }
+        setError(error.code === 1 ? 'Autorisez la géolocalisation' : 'Activez votre GPS');
+        setLocationLoading(false);
       },
       {
-        enableHighAccuracy: false,
-        timeout: 8000,
-        maximumAge: 600000 // 10 minutes
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
       }
     );
   };
@@ -225,12 +187,10 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         formData.append('audioDuration', audioDuration.toString());
       }
 
-      // OPTIMISATION 3: Envoi rapide avec gestion token expiré
+      // Envoi rapide
       const response = await fetch(buildApiUrl('/api/waste'), {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
 
