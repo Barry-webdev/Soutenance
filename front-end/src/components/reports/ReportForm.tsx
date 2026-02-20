@@ -112,8 +112,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       },
       { 
         enableHighAccuracy: true,  // GPS précis
-        timeout: 20000,            // 20 secondes
-        maximumAge: 0              // Position fraîche
+        timeout: 8000,             // 8 secondes
+        maximumAge: 5000           // Cache 5 secondes
       }
     );
   };
