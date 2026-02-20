@@ -68,8 +68,8 @@ class GeographicValidationService {
             
             return {
                 isValid: false,
-                error: 'Localisation non disponible',
-                details: `Vous êtes à ${distanceFromCenter.toFixed(2)} km de Pita. Cette zone n'est pas encore couverte.`
+                error: 'GPS imprécis détecté',
+                details: `Votre GPS indique que vous êtes à ${distanceFromCenter.toFixed(0)} km de Pita. Si vous êtes bien à Pita, redémarrez votre téléphone et réessayez. Sinon, cette zone n'est pas couverte.`
             };
         }
 
@@ -79,8 +79,8 @@ class GeographicValidationService {
             
             return {
                 isValid: false,
-                error: 'Localisation non disponible',
-                details: `Vous êtes à ${distanceFromCenter.toFixed(2)} km de Pita. Zone maximale: ${this.MAX_RADIUS_KM} km.`
+                error: 'GPS imprécis détecté',
+                details: `Votre GPS indique ${distanceFromCenter.toFixed(0)} km de Pita (max: ${this.MAX_RADIUS_KM} km). Redémarrez votre téléphone ou allez en extérieur pour un meilleur signal GPS.`
             };
         }
 
