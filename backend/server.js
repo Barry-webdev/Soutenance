@@ -12,9 +12,11 @@ import collaborationRoutes from './routes/collaborationRoute.js';
 import statsRoutes from './routes/statsRoute.js';
 import notificationRoutes from './routes/notificationRoute.js';
 import transcriptionRoutes from './routes/transcriptionRoute.js';
+import securityRoutes from './routes/securityRoute.js';
 
 import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 import { createServer } from 'http';
+import { globalSecurityMiddleware } from './middlewares/advancedSecurityMiddleware.js';
 
 const app = express();
 
@@ -86,6 +88,9 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// 🔒 SÉCURITÉ AVANCÉE: Protection multicouche contre toutes les attaques
+app.use(globalSecurityMiddleware);
+
 // Middleware de logging pour debug CORS
 app.use((req, res, next) => {
     if (req.method === 'PATCH' || req.method === 'OPTIONS') {
@@ -108,6 +113,7 @@ app.use('/api/collaborations', collaborationRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/transcription', transcriptionRoutes);
+app.use('/api/security', securityRoutes);
 
 // Endpoints de santé pour les tests et le monitoring
 app.get('/api/health', (req, res) => {
