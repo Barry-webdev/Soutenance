@@ -70,8 +70,31 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setLocationLoading(true);
     setError(null);
 
+    // Méthode 1 : API de géolocalisation précise (IP + réseau)
+    fetch('https://ipapi.co/json/')
+      .then(res => res.json())
+      .then(data => {
+        if (data.latitude && data.longitude) {
+          setLocation({
+            latitude: data.latitude,
+            longitude: data.longitude,
+            address: `${data.city || ''}, ${data.region || ''}, ${data.country_name || ''}`.trim()
+          });
+          setLocationLoading(false);
+        } else {
+          // Méthode 2 : GPS du navigateur en fallback
+          useNavigatorGeolocation();
+        }
+      })
+      .catch(() => {
+        // Méthode 2 : GPS du navigateur en fallback
+        useNavigatorGeolocation();
+      });
+  };
+
+  const useNavigatorGeolocation = () => {
     if (!navigator.geolocation) {
-      setError('Votre navigateur ne supporte pas la géolocalisation.');
+      setError('Géolocalisation non disponible');
       setLocationLoading(false);
       return;
     }
@@ -111,8 +134,8 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         
         setLocationLoading(false);
       },
-      (error) => {
-        setError(error.code === 1 ? 'Autorisez la géolocalisation' : 'Activez votre GPS');
+      () => {
+        setError('Activez votre GPS');
         setLocationLoading(false);
       },
       {
