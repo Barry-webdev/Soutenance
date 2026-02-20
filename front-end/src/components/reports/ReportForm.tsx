@@ -70,35 +70,18 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setLocationLoading(true);
     setError(null);
 
-    try {
-      // Essayer plusieurs APIs pour avoir la meilleure précision
-      const response = await fetch('https://ipapi.co/json/');
-      const data = await response.json();
-      
-      if (data.latitude && data.longitude) {
-        const address = [data.city, data.region, data.country_name].filter(Boolean).join(', ');
-        setLocation({
-          latitude: data.latitude,
-          longitude: data.longitude,
-          address: address || `${data.latitude.toFixed(6)}, ${data.longitude.toFixed(6)}`
-        });
-        setLocationLoading(false);
-        return;
-      }
-    } catch (error) {
-      console.log('API IP échouée, essai GPS navigateur');
-    }
-
-    // Fallback : GPS navigateur
     if (!navigator.geolocation) {
       setError('Géolocalisation non disponible');
       setLocationLoading(false);
       return;
     }
 
+    // GPS haute précision pour mobile/tablette
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const { latitude, longitude } = position.coords;
+        const { latitude, longitude, accuracy } = position.coords;
+        
+        console.log(`📍 Position obtenue - Précision: ${accuracy}m`);
         
         try {
           const response = await fetch(
@@ -122,11 +105,16 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         
         setLocationLoading(false);
       },
-      () => {
-        setError('Activez la géolocalisation');
+      (error) => {
+        console.error('Erreur GPS:', error);
+        setError('Activez le GPS et autorisez la géolocalisation');
         setLocationLoading(false);
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+      { 
+        enableHighAccuracy: true,  // GPS précis
+        timeout: 20000,            // 20 secondes
+        maximumAge: 0              // Position fraîche
+      }
     );
   };
 
