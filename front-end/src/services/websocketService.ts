@@ -26,14 +26,18 @@ class WebSocketService {
       console.log('🔌 Tentative de connexion WebSocket...');
       this.isConnecting = true;
 
-      this.socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000', {
+      // 🔒 SÉCURITÉ: Utiliser la bonne URL selon l'environnement
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      
+      this.socket = io(backendUrl, {
         auth: {
           token: token
         },
         transports: ['websocket', 'polling'],
         timeout: 5000,
         forceNew: true,
-        autoConnect: true
+        autoConnect: true,
+        reconnection: false // Désactiver la reconnexion automatique
       });
 
       this.socket.on('connect', () => {
@@ -45,15 +49,17 @@ class WebSocketService {
       this.socket.on('disconnect', (reason) => {
         console.log('❌ WebSocket déconnecté:', reason);
         this.isConnecting = false;
-        if (reason !== 'io client disconnect') {
-          this.handleReconnect();
-        }
+        // Ne pas tenter de reconnexion en production si le serveur ne supporte pas WebSocket
       });
 
       this.socket.on('connect_error', (error) => {
-        console.log('⚠️ Erreur de connexion WebSocket (non bloquante):', error.message);
+        console.log('⚠️ WebSocket non disponible (mode dégradé - fonctionnalités temps réel désactivées)');
         this.isConnecting = false;
-        this.handleReconnect();
+        // Arrêter les tentatives de connexion
+        if (this.socket) {
+          this.socket.disconnect();
+          this.socket = null;
+        }
       });
 
       // Écouter les notifications
