@@ -22,11 +22,26 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    isLoading: true, // ✅ cohérent avec Navbar
-    error: null,
+  const [authState, setAuthState] = useState<AuthState>(() => {
+    // Initialisation immédiate depuis localStorage
+    const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    
+    if (savedUser && token) {
+      return {
+        user: JSON.parse(savedUser) as User,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      };
+    }
+    
+    return {
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+    };
   });
 
   // 🔁 Re-sync user when localStorage changes (useful when login from another tab)
@@ -50,65 +65,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  // Connexion WebSocket quand l'utilisateur est authentifié
+  // Connexion WebSocket quand l'utilisateur est authentifié (non bloquant)
   useEffect(() => {
     if (authState.isAuthenticated && authState.user) {
       const token = localStorage.getItem('token');
       if (token) {
-        // Délai pour éviter les erreurs de connexion immédiate
+        // Connexion WebSocket en arrière-plan (non bloquant)
         setTimeout(() => {
           try {
             webSocketService.connect(token);
           } catch (error) {
-            console.log('WebSocket non disponible:', error);
+            // Silencieux - WebSocket optionnel
           }
-        }, 1000);
-      }
-    } else {
-      try {
-        webSocketService.disconnect();
-      } catch (error) {
-        console.log('Erreur déconnexion WebSocket:', error);
+        }, 2000);
       }
     }
+  }, [authState.isAuthenticated]);
 
-    return () => {
-      try {
-        webSocketService.disconnect();
-      } catch (error) {
-        console.log('Erreur cleanup WebSocket:', error);
-      }
-    };
-  }, [authState.isAuthenticated, authState.user]);
-
-  // ✅ Check for saved auth on app load
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const savedUser = localStorage.getItem('user');
-        if (savedUser) {
-          const user = JSON.parse(savedUser) as User;
-          setAuthState({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-        } else {
-          setAuthState(prevState => ({ ...prevState, isLoading: false }));
-        }
-      } catch (error) {
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          error: 'Failed to restore session',
-        });
-      }
-    };
-
-    checkAuth();
-  }, []);
+  // Supprimé : useEffect qui recharge l'auth (déjà fait dans l'initialisation)
 
   const login = async (email: string, password: string) => {
     setAuthState(prevState => ({ ...prevState, isLoading: true, error: null }));
