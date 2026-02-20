@@ -62,13 +62,18 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Générer un token JWT
 userSchema.methods.generateAuthToken = function() {
+    // 🔒 SÉCURITÉ: Vérifier que JWT_SECRET existe
+    if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET non défini dans les variables d\'environnement');
+    }
+    
     return jwt.sign(
         { 
             userId: this._id, 
             email: this.email, 
             role: this.role 
         },
-        process.env.JWT_SECRET || 'fallback_secret',
+        process.env.JWT_SECRET,
         { expiresIn: '24h' }
     );
 };

@@ -15,7 +15,16 @@ export const authenticate = async (req, res, next) => {
             });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+        // 🔒 SÉCURITÉ: Vérifier que JWT_SECRET existe
+        if (!process.env.JWT_SECRET) {
+            console.error('🚨 ERREUR CRITIQUE: JWT_SECRET non défini dans les variables d\'environnement');
+            return res.status(500).json({ 
+                success: false,
+                error: 'Configuration serveur invalide.' 
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.userId).select('-password');
         
         if (!user) {
@@ -35,7 +44,8 @@ export const authenticate = async (req, res, next) => {
         req.user = user;
         next();
     } catch (error) {
-        console.error('❌ Erreur authentification:', error);
+        // 🔒 SÉCURITÉ: Ne pas exposer les détails de l'erreur
+        console.error('❌ Erreur authentification:', error.message);
         
         if (error.name === 'JsonWebTokenError') {
             return res.status(401).json({ 
@@ -51,9 +61,9 @@ export const authenticate = async (req, res, next) => {
             });
         }
         
-        res.status(500).json({ 
+        res.status(401).json({ 
             success: false,
-            error: 'Erreur d\'authentification.' 
+            error: 'Authentification échouée.' 
         });
     }
 };

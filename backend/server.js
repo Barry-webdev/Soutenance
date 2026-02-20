@@ -22,47 +22,63 @@ const app = express();
 connectDB();
 
 // Middlewares de sécurité
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
+        },
+    },
+    crossOriginEmbedderPolicy: false,
+}));
 
-// Configuration CORS ultra-permissive pour résoudre les problèmes de connectivité
-app.use((req, res, next) => {
-    // Permettre toutes les origines Vercel et localhost
-    const origin = req.headers.origin;
-    
-    if (!origin || 
-        origin.includes('localhost') || 
-        origin.includes('vercel.app') ||
-        origin.includes('ecopulse-app') ||
-        origin.includes('ecopulse-wine') ||
-        origin.includes('soutenance-barry-webdevs-projects')) {
-        res.header('Access-Control-Allow-Origin', origin || '*');
-    } else {
-        // Log des origines non reconnues mais les autoriser quand même
-        console.log('⚠️ Origin non reconnu mais autorisé:', origin);
-        res.header('Access-Control-Allow-Origin', origin || '*');
-    }
-    
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // Gérer les requêtes preflight OPTIONS
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
+// 🔒 SÉCURITÉ: Configuration CORS stricte
+const allowedOrigins = [
+    'http://localhost:3002',
+    'http://localhost:5173',
+    'https://ecopulse-app.vercel.app',
+    'https://ecopulse-wine.vercel.app',
+    'https://soutenance-barry-webdevs-projects.vercel.app'
+];
 
-// Limitation de taux (plus permissive pour éviter les blocages)
+app.use(cors({
+    origin: function (origin, callback) {
+        // Permettre les requêtes sans origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+        
+        // Vérifier si l'origin est dans la liste autorisée
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else if (origin.includes('vercel.app') && origin.includes('ecopulse')) {
+            // Permettre les previews Vercel d'EcoPulse
+            console.log('⚠️ Origin Vercel preview autorisé:', origin);
+            callback(null, true);
+        } else {
+            console.log('🚫 Origin bloqué:', origin);
+            callback(new Error('Non autorisé par CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// 🔒 SÉCURITÉ: Limitation de taux stricte
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // Augmenté à 1000 requêtes par windowMs
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // 100 requêtes max
     message: {
         success: false,
         error: 'Trop de requêtes. Veuillez réessayer dans 15 minutes.'
     },
     standardHeaders: true,
     legacyHeaders: false,
+    // 🔒 Limiter par IP
+    keyGenerator: (req) => {
+        return req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    }
 });
 app.use('/api/', limiter);
 
