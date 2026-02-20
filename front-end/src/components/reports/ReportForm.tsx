@@ -116,9 +116,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         setLocationLoading(false);
       },
       {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 30000
       }
     );
   };
