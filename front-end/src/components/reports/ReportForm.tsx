@@ -66,33 +66,30 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setAudioDuration(duration);
   };
 
-  const getCurrentLocation = () => {
+  const getCurrentLocation = async () => {
     setLocationLoading(true);
     setError(null);
 
-    // Méthode 1 : API de géolocalisation précise (IP + réseau)
-    fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
-        if (data.latitude && data.longitude) {
-          setLocation({
-            latitude: data.latitude,
-            longitude: data.longitude,
-            address: `${data.city || ''}, ${data.region || ''}, ${data.country_name || ''}`.trim()
-          });
-          setLocationLoading(false);
-        } else {
-          // Méthode 2 : GPS du navigateur en fallback
-          useNavigatorGeolocation();
-        }
-      })
-      .catch(() => {
-        // Méthode 2 : GPS du navigateur en fallback
-        useNavigatorGeolocation();
-      });
-  };
+    try {
+      // Essayer plusieurs APIs pour avoir la meilleure précision
+      const response = await fetch('https://ipapi.co/json/');
+      const data = await response.json();
+      
+      if (data.latitude && data.longitude) {
+        const address = [data.city, data.region, data.country_name].filter(Boolean).join(', ');
+        setLocation({
+          latitude: data.latitude,
+          longitude: data.longitude,
+          address: address || `${data.latitude.toFixed(6)}, ${data.longitude.toFixed(6)}`
+        });
+        setLocationLoading(false);
+        return;
+      }
+    } catch (error) {
+      console.log('API IP échouée, essai GPS navigateur');
+    }
 
-  const useNavigatorGeolocation = () => {
+    // Fallback : GPS navigateur
     if (!navigator.geolocation) {
       setError('Géolocalisation non disponible');
       setLocationLoading(false);
@@ -105,44 +102,31 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         
         try {
           const response = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=fr`,
-            { signal: AbortSignal.timeout(3000) }
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=fr`
           );
-          
-          let address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
           
           if (response.ok) {
             const data = await response.json();
-            const parts = [];
-            if (data.locality) parts.push(data.locality);
-            if (data.city && data.city !== data.locality) parts.push(data.city);
-            if (data.principalSubdivision) parts.push(data.principalSubdivision);
-            
-            if (parts.length > 0) {
-              address = parts.join(', ');
-            }
+            const address = [data.locality, data.city, data.principalSubdivision].filter(Boolean).join(', ');
+            setLocation({ 
+              latitude, 
+              longitude, 
+              address: address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` 
+            });
+          } else {
+            setLocation({ latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` });
           }
-
-          setLocation({ latitude, longitude, address });
         } catch {
-          setLocation({
-            latitude,
-            longitude,
-            address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-          });
+          setLocation({ latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` });
         }
         
         setLocationLoading(false);
       },
       () => {
-        setError('Activez votre GPS');
+        setError('Activez la géolocalisation');
         setLocationLoading(false);
       },
-      {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 30000
-      }
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
     );
   };
 
