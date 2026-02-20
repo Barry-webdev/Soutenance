@@ -159,9 +159,9 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         setLocationLoading(false);
       },
       {
-        enableHighAccuracy: true, // Meilleure précision
-        timeout: 30000, // 30 secondes (augmenté pour GPS lent)
-        maximumAge: 30000 // Cache de 30 secondes accepté
+        enableHighAccuracy: false, // Désactivé pour être plus rapide
+        timeout: 10000, // 10 secondes max
+        maximumAge: 300000 // Accepter position jusqu'à 5 minutes
       }
     );
   };
