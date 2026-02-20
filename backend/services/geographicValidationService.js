@@ -6,12 +6,13 @@
 
 class GeographicValidationService {
     // Limites approximatives de la préfecture de Pita basées sur les sous-préfectures
+    // 🌍 ZONE ÉLARGIE pour couvrir toute la préfecture et ses périphéries
     static PITA_PREFECTURE_BOUNDS = {
-        // Coordonnées extrêmes basées sur les sous-préfectures
-        north: 11.25,    // Un peu au nord de Ninguélandé (11°11'N)
-        south: 10.55,    // Un peu au sud de Sangaréah (10°38'N)  
-        east: -12.30,    // Un peu à l'est du centre de Pita (-12°23'W)
-        west: -12.95     // Un peu à l'ouest de Ley-Miro (-12°53'W)
+        // Coordonnées extrêmes élargies pour couvrir toute la zone
+        north: 11.50,    // Élargi au nord (était 11.25)
+        south: 10.30,    // Élargi au sud (était 10.55)
+        east: -12.00,    // Élargi à l'est (était -12.30)
+        west: -13.20     // Élargi à l'ouest (était -12.95)
     };
 
     // Centre de la préfecture de Pita (ville principale)
@@ -20,8 +21,8 @@ class GeographicValidationService {
         lng: -12.396111
     };
 
-    // Rayon maximum depuis le centre (environ 50km pour couvrir toute la préfecture)
-    static MAX_RADIUS_KM = 50;
+    // Rayon maximum depuis le centre (élargi à 80km pour couvrir toutes les périphéries)
+    static MAX_RADIUS_KM = 80;
 
     /**
      * Vérifier si des coordonnées sont dans les limites de la préfecture de Pita
@@ -39,6 +40,13 @@ class GeographicValidationService {
             };
         }
 
+        // 🔍 DEBUG: Logger les coordonnées pour diagnostic
+        console.log('🌍 Validation géographique:', {
+            coordinates: { lat, lng },
+            bounds: this.PITA_PREFECTURE_BOUNDS,
+            center: this.PITA_CENTER
+        });
+
         // Vérification des limites rectangulaires
         const withinBounds = (
             lat >= this.PITA_PREFECTURE_BOUNDS.south &&
@@ -47,27 +55,39 @@ class GeographicValidationService {
             lng <= this.PITA_PREFECTURE_BOUNDS.east
         );
 
-        if (!withinBounds) {
-            return {
-                isValid: false,
-                error: 'Localisation non disponible',
-                details: 'Impossible de traiter ce signalement pour le moment'
-            };
-        }
-
-        // Vérification supplémentaire par distance depuis le centre
+        // Calculer la distance depuis le centre
         const distanceFromCenter = this.calculateDistance(
             lat, lng,
             this.PITA_CENTER.lat, this.PITA_CENTER.lng
         );
 
-        if (distanceFromCenter > this.MAX_RADIUS_KM) {
+        console.log('📏 Distance depuis Pita centre:', distanceFromCenter.toFixed(2), 'km');
+
+        if (!withinBounds) {
+            console.warn('⚠️ Hors limites rectangulaires:', {
+                lat: { value: lat, min: this.PITA_PREFECTURE_BOUNDS.south, max: this.PITA_PREFECTURE_BOUNDS.north },
+                lng: { value: lng, min: this.PITA_PREFECTURE_BOUNDS.west, max: this.PITA_PREFECTURE_BOUNDS.east }
+            });
+            
             return {
                 isValid: false,
                 error: 'Localisation non disponible',
-                details: 'Impossible de traiter ce signalement pour le moment'
+                details: `Vous êtes à ${distanceFromCenter.toFixed(2)} km de Pita. Cette zone n'est pas encore couverte.`
             };
         }
+
+        // Vérification supplémentaire par distance depuis le centre
+        if (distanceFromCenter > this.MAX_RADIUS_KM) {
+            console.warn('⚠️ Trop loin du centre:', distanceFromCenter.toFixed(2), 'km (max:', this.MAX_RADIUS_KM, 'km)');
+            
+            return {
+                isValid: false,
+                error: 'Localisation non disponible',
+                details: `Vous êtes à ${distanceFromCenter.toFixed(2)} km de Pita. Zone maximale: ${this.MAX_RADIUS_KM} km.`
+            };
+        }
+
+        console.log('✅ Localisation validée:', distanceFromCenter.toFixed(2), 'km de Pita');
 
         return {
             isValid: true,
