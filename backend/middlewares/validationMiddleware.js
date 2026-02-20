@@ -44,6 +44,36 @@ export const validateRegister = (req, res, next) => {
     if (!email) errors.push('L\'email est obligatoire');
     if (!password) errors.push('Le mot de passe est obligatoire');
     
+    // 🔒 SÉCURITÉ: Validation stricte du nom
+    if (name) {
+        const trimmedName = name.trim();
+        
+        // Bloquer les caractères dangereux
+        const dangerousCharsRegex = /[<>\"'\/\\]/;
+        if (dangerousCharsRegex.test(trimmedName)) {
+            errors.push('Le nom contient des caractères non autorisés');
+        }
+        
+        // Vérifier le format (lettres, espaces, tirets, apostrophes uniquement)
+        const validNameRegex = /^[a-zA-ZÀ-ÿ\s\-']{2,50}$/;
+        if (!validNameRegex.test(trimmedName)) {
+            errors.push('Le nom doit contenir entre 2 et 50 caractères (lettres uniquement)');
+        }
+        
+        // Bloquer les mots-clés suspects
+        const suspiciousKeywords = ['script', 'alert', 'prompt', 'confirm', 'eval', 'function', 'javascript', 'onclick', 'onerror', 'onload', 'iframe', 'object', 'embed'];
+        const lowerName = trimmedName.toLowerCase();
+        for (const keyword of suspiciousKeywords) {
+            if (lowerName.includes(keyword)) {
+                errors.push('Le nom contient des mots non autorisés');
+                break;
+            }
+        }
+        
+        // Mettre à jour avec le nom nettoyé
+        req.body.name = trimmedName;
+    }
+    
     if (email && !isValidEmail(email)) {
         errors.push('Format d\'email invalide');
     }

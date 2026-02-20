@@ -18,6 +18,33 @@ const RegisterPage: React.FC = () => {
     setError(null);
     setSuccess(null);
     
+    // 🔒 SÉCURITÉ: Validation et sanitization du nom
+    const sanitizedName = name.trim();
+    
+    // Bloquer les caractères dangereux (< > " ' / \ etc.)
+    const dangerousCharsRegex = /[<>\"'\/\\]/;
+    if (dangerousCharsRegex.test(sanitizedName)) {
+      setError('Le nom contient des caractères non autorisés. Utilisez uniquement des lettres, chiffres, espaces et tirets.');
+      return;
+    }
+    
+    // Vérifier que le nom contient au moins 2 caractères alphabétiques
+    const validNameRegex = /^[a-zA-ZÀ-ÿ\s\-']{2,50}$/;
+    if (!validNameRegex.test(sanitizedName)) {
+      setError('Le nom doit contenir entre 2 et 50 caractères (lettres, espaces, tirets et apostrophes uniquement).');
+      return;
+    }
+    
+    // Bloquer les mots-clés suspects (script, alert, etc.)
+    const suspiciousKeywords = ['script', 'alert', 'prompt', 'confirm', 'eval', 'function', 'javascript', 'onclick', 'onerror', 'onload'];
+    const lowerName = sanitizedName.toLowerCase();
+    for (const keyword of suspiciousKeywords) {
+      if (lowerName.includes(keyword)) {
+        setError('Le nom contient des mots non autorisés. Veuillez utiliser votre vrai nom.');
+        return;
+      }
+    }
+    
     if (password !== confirmPassword) {
       setError('Les mots de passe ne correspondent pas.');
       return;
@@ -29,8 +56,8 @@ const RegisterPage: React.FC = () => {
     }
     
     try {
-      // ✅ Inscription avec redirection immédiate
-      const result = await register(email, password, name);
+      // ✅ Inscription avec nom sanitizé
+      const result = await register(email, password, sanitizedName);
       
       if (result.success) {
         setSuccess('Inscription réussie ! Redirection...');
