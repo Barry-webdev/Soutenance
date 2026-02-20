@@ -71,28 +71,20 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
     setError(null);
 
     if (!navigator.geolocation) {
-      setError('❌ Votre navigateur ne supporte pas la géolocalisation. Utilisez Chrome, Firefox ou Safari.');
-      setLocationLoading(false);
-      return;
-    }
-
-    // 🔍 Vérifier si HTTPS (requis pour la géolocalisation)
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-      setError('⚠️ La géolocalisation nécessite une connexion sécurisée (HTTPS).');
+      setError('❌ Votre navigateur ne supporte pas la géolocalisation.');
       setLocationLoading(false);
       return;
     }
 
     console.log('📍 Demande de géolocalisation...');
 
+    // Tentative 1 : Position rapide (basse précision)
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        
         console.log('✅ Position obtenue:', { latitude, longitude });
         
         try {
-          // Obtenir l'adresse réelle
           const response = await fetch(
             `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=fr`
           );
@@ -134,34 +126,37 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       (error) => {
         console.error('❌ Erreur géolocalisation:', error);
         
-        let errorMessage = '';
-        let helpMessage = '';
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = '🚫 Permission refusée';
-            helpMessage = 'Autorisez la géolocalisation dans les paramètres de votre navigateur. Cliquez sur l\'icône 🔒 dans la barre d\'adresse.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = '📡 Position indisponible';
-            helpMessage = 'Activez votre GPS et assurez-vous d\'avoir une connexion internet. Si vous êtes en intérieur, essayez de vous rapprocher d\'une fenêtre.';
-            break;
-          case error.TIMEOUT:
-            errorMessage = '⏱️ Délai dépassé';
-            helpMessage = 'Le GPS met trop de temps à répondre. Vérifiez que votre GPS est activé et réessayez.';
-            break;
-          default:
-            errorMessage = '❌ Erreur GPS';
-            helpMessage = 'Une erreur est survenue. Vérifiez vos paramètres GPS et réessayez.';
+        // Tentative 2 : Utiliser la dernière position connue
+        if ('geolocation' in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              setLocation({
+                latitude,
+                longitude,
+                address: `Position GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+              });
+              setLocationLoading(false);
+            },
+            () => {
+              setError('GPS indisponible. Activez votre GPS et autorisez la géolocalisation.');
+              setLocationLoading(false);
+            },
+            {
+              enableHighAccuracy: false,
+              timeout: 5000,
+              maximumAge: Infinity // Accepter n'importe quelle position en cache
+            }
+          );
+        } else {
+          setError('GPS indisponible. Activez votre GPS et autorisez la géolocalisation.');
+          setLocationLoading(false);
         }
-        
-        setError(`${errorMessage}\n\n💡 ${helpMessage}`);
-        setLocationLoading(false);
       },
       {
-        enableHighAccuracy: false, // Désactivé pour être plus rapide
-        timeout: 10000, // 10 secondes max
-        maximumAge: 300000 // Accepter position jusqu'à 5 minutes
+        enableHighAccuracy: false,
+        timeout: 8000,
+        maximumAge: 600000 // 10 minutes
       }
     );
   };
