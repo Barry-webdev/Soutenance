@@ -22,7 +22,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
   const [audioDuration, setAudioDuration] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,7 +201,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         setError('Session expirée. Veuillez vous reconnecter.');
         setTimeout(() => {
           window.location.href = '/login';
-        }, 2000);
+        }, 1500);
         return;
       }
       
@@ -210,16 +209,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
         throw new Error(responseData.error || responseData.message || "Erreur lors de l'enregistrement.");
       }
 
-      // OPTIMISATION 4: Notification locale immédiate (pas d'appel serveur)
-      addNotification({
-        userId: user.id,
-        title: 'Signalement envoyé !',
-        message: 'Votre signalement a été enregistré avec succès.',
-        read: false
-      });
-
-      // OPTIMISATION 5: Reset immédiat + redirection rapide
-      setSuccess(true);
+      // 🚀 OPTIMISATION: Reset + Redirection INSTANTANÉE
       setDescription('');
       setWasteType('plastique');
       setLocation(null);
@@ -228,7 +218,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
       setAudioBlob(null);
       setAudioDuration(0);
 
-      // Redirection immédiate (pas de délai)
+      // 🚀 Redirection IMMÉDIATE (pas de délai, pas de message)
       if (onSuccess) {
         onSuccess();
       } else {
@@ -287,13 +277,6 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
   return (
     <div className="card max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Signaler un déchet</h2>
-
-      {success && (
-        <div className="bg-green-100 border border-green-500 text-green-700 p-4 rounded mb-4">
-          <p className="font-semibold">✅ Signalement envoyé avec succès!</p>
-          <p className="text-sm mt-1">Redirection vers la carte dans 2 secondes...</p>
-        </div>
-      )}
       
       {error && (
         <div className="bg-red-100 border border-red-500 text-red-700 p-4 rounded mb-4">

@@ -28,16 +28,12 @@ const LoginPage: React.FC = () => {
     setSuccess(null);
 
     try {
-      // 🚀 Login avec redirection immédiate
+      // 🚀 Login avec redirection INSTANTANÉE
       const result = await login(email, password);
       
       if (result.success) {
-        setSuccess('Connexion réussie !');
-        
-        // 🚀 Redirection immédiate selon le rôle
-        setTimeout(() => {
-          navigate(result.redirect, { replace: true });
-        }, 500); // Petit délai pour voir le message de succès
+        // 🚀 Redirection IMMÉDIATE (pas de délai)
+        navigate(result.redirect, { replace: true });
       }
     } catch (err: any) {
       setError(err.message || 'Erreur de connexion au serveur.');

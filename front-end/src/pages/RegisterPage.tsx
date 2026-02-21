@@ -60,17 +60,13 @@ const RegisterPage: React.FC = () => {
       const result = await register(email, password, sanitizedName);
       
       if (result.success) {
-        setSuccess('Inscription réussie ! Redirection...');
-        
-        // ✅ Redirection immédiate vers login
-        setTimeout(() => {
-          navigate('/login', { 
-            state: { 
-              message: 'Inscription réussie ! Veuillez vous connecter.',
-              email: email
-            }
-          });
-        }, 1000); // Délai réduit à 1 seconde
+        // ✅ Redirection IMMÉDIATE vers login
+        navigate('/login', { 
+          state: { 
+            message: 'Inscription réussie ! Veuillez vous connecter.',
+            email: email
+          }
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'inscription. Veuillez réessayer.');
