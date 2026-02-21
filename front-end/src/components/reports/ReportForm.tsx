@@ -166,7 +166,12 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSuccess }) => {
 
       // OPTIMISATION 2: Créer FormData optimisé
       const formData = new FormData();
-      formData.append('description', description);
+      
+      // N'envoyer la description que si elle n'est pas vide
+      if (description && description.trim().length > 0) {
+        formData.append('description', description.trim());
+      }
+      
       formData.append('wasteType', wasteType);
       formData.append('location', JSON.stringify({
         lat: location.latitude,

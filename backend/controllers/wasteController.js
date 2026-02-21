@@ -98,10 +98,13 @@ export const createWasteReport = async (req, res) => {
         console.log('- description:', JSON.stringify(description));
         console.log('- audio:', audio ? 'présent' : 'absent');
 
+        // Nettoyer la description (undefined si vide)
+        const cleanDescription = description && description.trim().length > 0 ? description.trim() : undefined;
+
         // Créer le signalement immédiatement
         const wasteReport = await WasteReport.create({
             userId: req.user._id,
-            description,
+            description: cleanDescription,
             images,
             audio,
             location,

@@ -13,7 +13,9 @@ const wasteReportSchema = new mongoose.Schema({
         validate: {
             validator: function() {
                 // Description OU audio requis (pas les deux obligatoires)
-                return this.description || this.audio?.url;
+                const hasDescription = this.description && this.description.trim().length > 0;
+                const hasAudio = this.audio?.url;
+                return hasDescription || hasAudio;
             },
             message: 'Une description écrite ou un enregistrement vocal est requis'
         }
