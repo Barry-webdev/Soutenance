@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Navbar from './components/layout/Navbar';
+import Footer from './components/layout/Footer';
 import './App.css';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -21,6 +22,9 @@ const HelpPage = lazy(() => import('./pages/HelpPage'));
 const MyReportsPage = lazy(() => import('./pages/MyReportsPage'));
 const CollaborationPage = lazy(() => import('./pages/CollaborationPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFundPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const FAQPage = lazy(() => import('./pages/FAQPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,9 +50,9 @@ function App() {
       <AuthProvider>
         <NotificationProvider>
           <Router>
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-gray-50 flex flex-col">
               <Navbar />
-              <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8">
+              <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 flex-1">
                 <Suspense fallback={<LoadingFallback />}>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
@@ -87,10 +91,14 @@ function App() {
                     <Route path="/search" element={<SearchPage />} />
                     <Route path="/help" element={<HelpPage />} />
                     <Route path="/collaboration" element={<CollaborationPage />} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/faq" element={<FAQPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </Suspense>
               </div>
+              <Footer />
             </div>
           </Router>
         </NotificationProvider>

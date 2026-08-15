@@ -219,6 +219,12 @@ const Navbar: React.FC = () => {
                 <Link to="/help" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                   Aide
                 </Link>
+                <Link to="/about" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  Qui sommes-nous
+                </Link>
+                <Link to="/contact" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  Contact
+                </Link>
                 {(user?.role === 'admin' || user?.role === 'super_admin') && (
                   <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                     Administration
